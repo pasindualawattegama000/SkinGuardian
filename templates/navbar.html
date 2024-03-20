@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='navbar.css') }}">
+</head>
+<body>
+
+           {% block navBar %}
+            <ul>
+                <div class="nav-left">
+                    <li><h4>SkinGuardan</h4></li>
+                    <li class=""> <a href="">Home</a></li>
+                    <li class=""> <a href="">Doctors</a></li>
+                    <li class=""> <a href="">Profile</a></li>
+                </div>
+            
+            
+                <!-- <div class="nav-center">
+                  <li class="">
+                    <form method="get" action="">
+                      <input type="text" name="search" placeholder="Search For Questions">
+                      <input type="submit" value="Search">
+                    </form>
+                  </li>
+                </div> -->
+            
+            
+                <div class="nav-right">
+                    <li><a href="">Pasindu</a></li>
+                    <li> <a href="">Logout</a></li>
+                    <li class=""><a href="">Login</a></li>
+                    <li class=""><a href="">Signup</a></li>
+                </div>
+            
+            </ul>
+            
+            {% endblock navBar %}
+
+</body>
+</html>

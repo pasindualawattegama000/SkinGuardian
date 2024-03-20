@@ -28,6 +28,17 @@ app.config['DEFAULT_PROFILE_IMAGE'] = 'images/default_profile.png'
 
 mysql = MySQL(app)
 
+
+
+@app.route('/')
+@app.route('/home')
+def home():
+    return render_template('home.html')
+
+
+
+
+
 # Registration Form
 class RegistrationForm(FlaskForm):
     firstname = StringField('First Name', validators=[InputRequired(), Length(min=1, max=50)])

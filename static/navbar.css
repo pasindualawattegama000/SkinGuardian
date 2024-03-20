@@ -1,0 +1,67 @@
+
+ul {
+    display: flex;
+    justify-content: space-between; /* Aligns items on the main-axis */
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #007451;
+}
+
+.nav-left, .nav-center, .nav-right {
+    display: flex;
+    align-items: center; /* Aligns items on the cross-axis */
+}
+
+.nav-right{
+  padding-right: 2%;
+}
+
+.nav-center {
+    flex-grow: 1; /* Allows the center section to grow */
+    justify-content: center; /* Centers items in the middle */
+}
+
+li a,h4, li form {
+    font-size: 18px;
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 0px 15px;
+    text-decoration: none;
+}
+
+/* Adjusted styles for input elements */
+/* li form input[type="text"], li form input[type="submit"] {
+    padding: 0;
+    background: #fff;
+    border: 1px solid #ccc;
+    color: black;
+    border-radius: 20px;
+}
+
+li form input[type="text"] {
+  padding: 0px 0px 0px 20px; 
+    width: 400px;
+}
+
+li form input[type="submit"] {
+    padding: 0px 10px;
+} */
+
+li a:hover {
+    background-color: #FFF;
+    border-radius:20px;
+    color: black;
+    text-decoration: none;
+}
+
+.active-link {
+border-bottom: 2px solid white; /* Adjust thickness as needed */
+}
+
+.nav-item.active {
+/* background-color: #4CAF50; */
+border-bottom: 2px solid white;
+}
