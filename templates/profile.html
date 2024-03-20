@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .user_details{
+            text-align: center;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+        img {
+            border-radius: 50%;
+            margin-top: 20px;
+        }
+        form {
+            margin-top: 20px;
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        input[type="text"], input[type="password"], input[type="submit"], input[type="file"] {
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input[type="submit"] {
+            background-color: #0056b3;
+            color: white;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #004494;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <div class="user_details">
+            <h1>My Profile</h1>
+            <img src="{{ profile_image }}" alt="Profile Image" style="width: 150px; height: 150px;">
+
+            <button onclick="toggleUpdateImageForm()">Update Profile Image</button>
+            <div id="updateImageForm" style="display: none;">
+                <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data">
+                    <input type="file" name="profile_image" accept="image/*">
+                    <input type="submit" value="Update Profile Image">
+                </form>
+            </div>
+
+            <p>Name: {{ account.firstname }} {{ account.lastname }}</p>
+            <p>Email: {{ account.email }}</p>
+        </div>
+
+        <button onclick="toggleUpdateInfoForm()">Update Your Information</button>
+        <div id="updateInfoForm" style="display: none;">
+            <form action="{{ url_for('update_profile') }}" method="post">
+                <input type="text" name="firstname" value="{{ account.firstname }}">
+                <input type="text" name="lastname" value="{{ account.lastname }}">
+                <input type="text" name="contact" value="{{ account.contact }}">
+                <input type="password" name="password" placeholder="New Password">
+                <input type="submit" value="Update Information">
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleUpdateInfoForm() {
+            var form = document.getElementById("updateInfoForm");
+            if (form.style.display === "none") {
+                form.style.display = "block";
+            } else {
+                form.style.display = "none";
+            }
+        }
+
+        function toggleUpdateImageForm() {
+            var form = document.getElementById("updateImageForm");
+            if (form.style.display === "none") {
+                form.style.display = "block";
+            } else {
+                form.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
