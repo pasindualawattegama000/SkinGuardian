@@ -1,5 +1,4 @@
 html, body {
-    height: 100%;
-    margin: 0;
-    /* background-color: rgb(107, 82, 14);  */
+    font-family: 'Franklin Gothic Medium', Arial, sans-serif;
+    background-color: #f3f7f2; 
 }

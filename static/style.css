@@ -1,5 +1,5 @@
 /* Store this code in 'style.css' file inside the 'static' folder*/
-
+/* 
 .header{
     padding: 5px 120px;
     width: 150px;
@@ -49,4 +49,12 @@
     color: #236B8E;
     font-style: oblique;
     font-weight: bold;
+} */
+
+
+html, body {
+    height: 100%;
+    margin: 0;
+    background-color: #61b83e; 
 }
+

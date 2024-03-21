@@ -9,42 +9,60 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='navbar.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+
 </head>
 <body>
     <nav>
         <ul>
             <div class="nav-left">
                 <li><h4>SkinGuardan</h4></li>
-                <li class=""> <a href="{{ url_for('home') }}">Home</a></li>
-                <li class=""> <a href="">Doctors</a></li>
-                <li class=""> <a href="{{ url_for('profile') }}">Profile</a></li>
+                <li class="{{ 'active' if request.endpoint == 'home' else '' }}"><a href="{{ url_for('home') }}">Home</a></li>
+                {% if 'loggedin' in session %}
+                    {% if session['user_type'] == 'admin' %}
+                        <li class="{{ 'active' if request.endpoint == 'doctorRegister' else '' }}"><a href="{{ url_for('doctorRegister') }}">Register Doctor</a></li>
+                        <li><a href="">Remove Doctor</a></li>
+                        <li><a href="">Remove Patient</a></li>
+
+                    {% elif session['user_type'] == 'doctor' %}
+                        <li><a href="{{ url_for('profile') }}">My Profile</a></li>
+                        <li><a href="">My Patients</a></li>
+                        <li><a href="">Patients</a></li>
+                        <li><a href="">Patient Requests</a></li>
+                        
+                    {% else %}
+                        <li class="{{ 'active' if request.endpoint == 'profile' else '' }}"><a href="{{ url_for('profile') }}">My Profile</a></li>
+                        <li><a href="">My Uploads</a></li>
+                        <li><a href="">My Doctor</a></li>
+                        <li><a href="">Doctor List</a></li>
+                        
+                    {% endif %}
+                {% endif %}
             </div>
-        
-        
-            <!-- <div class="nav-center">
-              <li class="">
-                <form method="get" action="">
-                  <input type="text" name="search" placeholder="Search For Questions">
-                  <input type="submit" value="Search">
-                </form>
-              </li>
-            </div> -->
-        
-        
+    
             <div class="nav-right">
-                <li><a href="">Pasindu</a></li>
-                <li> <a href="">Logout</a></li>
-                <li class=""><a href="{{ url_for('login') }}">Login</a></li>
-                <li class=""><a href="{{ url_for('register') }}">Signup</a></li>
+                {% if 'loggedin' in session %}
+                    <li><a href="#">{{ session.get('fullname') }}</a></li>
+                    <li class="{{ 'active' if request.endpoint == 'logout' else '' }}"><a href="{{ url_for('logout') }}">Logout</a></li>
+                {% else %}
+                    <li class="{{ 'active' if request.endpoint == 'login' else '' }}"><a href="{{ url_for('login') }}">Login</a></li>
+                    <li class="{{ 'active' if request.endpoint == 'register' else '' }}"><a href="{{ url_for('register') }}"><a href="{{ url_for('register') }}">Signup</a></li>
+                {% endif %}
             </div>
-        
         </ul>
     </nav>
+    
 
     {% block content %}{% endblock %}
 
     <script type="text/javascript">
-        // JavaScript for closing alerts, etc.
+         // Close the alert after 5 seconds (5000 ms)
+        window.setTimeout(function() {
+            $(".alert").fadeTo(500, 0).slideUp(500, function(){
+                $(this).remove(); 
+            });
+        }, 5000);
     </script>
 </body>
 </html>

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Register Doctor{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+
+    <h2 class="heading">Register Doctor</h2>
+    <form action="{{ url_for('doctorRegister') }}" method="post" class="registration-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-field">
+            {{ form.firstname.label }}
+            {{ form.firstname }}
+            {% if form.firstname.errors %}
+                {% for error in form.firstname.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+            {{ form.lastname.label }}
+            {{ form.lastname }}
+            {% if form.lastname.errors %}
+                {% for error in form.lastname.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+            {{ form.email.label }}
+            {{ form.email }}
+            {% if form.email.errors %}
+                {% for error in form.email.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+            {{ form.password.label }}
+            {{ form.password }}
+            {% if form.password.errors %}
+                {% for error in form.password.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+            {{ form.specialty.label }}
+            {{ form.specialty }}
+            {% if form.specialty.errors %}
+                {% for error in form.specialty.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+            {{ form.contact.label }}
+            {{ form.contact }}
+            {% if form.contact.errors %}
+                {% for error in form.contact.errors %}
+                    <div class="error">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="form-field">
+            {{ form.submit }}
+        </div>
+    </form>
+</div>
+{% endblock %}

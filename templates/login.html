@@ -34,6 +34,11 @@
                 {% endfor %}
             {% endif %}
         </div>
+
+        <div class="form-field">
+            {{ form.user_type.label }} {{ form.user_type }}
+        </div>
+        
         <div class="form-field">
             {{ form.submit }}
         </div>
