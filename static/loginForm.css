@@ -1,12 +1,6 @@
 
 body, html {
-    /* height: 100%;
-    margin: 0; */
-    /* font-family: Arial, sans-serif; */
     background-color: #F5F5F5;
-    /* display: flex;
-    justify-content: center;
-    align-items: center; */
 }
 
 .register-box {
@@ -63,8 +57,8 @@ body, html {
 }
 
 .alert-danger {
-    background-color: #ffcccc; /* Light red background */
-    color: red; /* Red text */
+    background-color: #ffcccc; 
+    color: red; 
     padding: 10px;
     margin-bottom: 15px;
     border: 1px solid red;

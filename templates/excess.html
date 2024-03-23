@@ -27,3 +27,36 @@
                 <p>Name: {{ account.firstname }} {{ account.lastname }}</p>
                 <p>Email: {{ account.email }}</p>
             </div> -->
+
+
+
+
+
+
+<!-- 
+
+            {% extends "base.html" %}
+
+{% block title %}My Uploads{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Prediction History</h1>
+    
+    {% if predictions %}
+        <ul class="">
+            {% for prediction in predictions %}
+            <li class="">
+                Uploaded at: {{ prediction['uploaded_at'] }}<br>
+                Image: <img src="{{ url_for('skin_uploaded_file', filename=prediction['image_path']) }}" alt="Prediction Image" style="width:100px;"><br>
+                Prediction Details: {{ prediction['prediction_details'] }}
+            </li>
+            {% endfor %}
+        </ul>
+
+        
+    {% else %}
+        <p>No predictions have been made yet.</p>
+    {% endif %}
+</div>
+{% endblock %} -->

@@ -19,6 +19,7 @@ h1, h2 {
 img {
     border-radius: 50%;
     margin-top: 20px;
+    object-fit: cover;
 }
 
 form {
@@ -37,7 +38,7 @@ input[type="text"], input[type="password"], input[type="file"] {
 }
 
 input[type="submit"], button {
-    background-color: #4CAF50; /* Green background */
+    background-color: #4CAF50; 
     border: none;
     color: white;
     padding: 5px 10px;
@@ -49,11 +50,11 @@ input[type="submit"], button {
     cursor: pointer;
     border-radius: 12px;
     transition: all 0.3s ease-in-out;
-    width: auto; /* Adjust width as needed */
+    width: auto; 
 }
 
 input[type="submit"]:hover, button:hover {
-    background-color: #45a049; /* Darker green */
+    background-color: #45a049; 
     transform: scale(1.05);
 }
 
@@ -62,15 +63,6 @@ input[type="submit"]:active, button:active {
 }
 
 
-
-/* .user_details {
-    text-align: center;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    margin-top: 20px;
-} */
 
 .user_details img {
     width: 150px;

@@ -1,7 +1,7 @@
 
 ul {
     display: flex;
-    justify-content: space-between; /* Aligns items on the main-axis */
+    justify-content: space-between; 
     list-style-type: none;
     margin: 0;
     padding: 0;
@@ -11,7 +11,7 @@ ul {
 
 .nav-left, .nav-center, .nav-right {
     display: flex;
-    align-items: center; /* Aligns items on the cross-axis */
+    align-items: center; 
 }
 
 .nav-right{
@@ -19,7 +19,7 @@ ul {
 }
 
 .nav-center {
-    flex-grow: 1; /* Allows the center section to grow */
+    flex-grow: 1; 
     justify-content: center; /* Centers items in the middle */
 }
 
@@ -32,7 +32,7 @@ li a,h4, li form {
     text-decoration: none;
 }
 
-/* Adjusted styles for input elements */
+
 /* li form input[type="text"], li form input[type="submit"] {
     padding: 0;
     background: #fff;
@@ -58,7 +58,7 @@ li a:hover {
 }
 
 .active-link {
-border-bottom: 2px solid white; /* Adjust thickness as needed */
+border-bottom: 2px solid white; 
 }
 
 .active {

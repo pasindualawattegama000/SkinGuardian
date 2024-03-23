@@ -2,10 +2,15 @@
 
 {% block title %}Register{% endblock %}
 
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='registerForm.css') }}">
+{% endblock %}
+
+
 {% block content %}
 
     <div class="register-box">
-      
+
         <h2>Register</h2>
         <form method="POST" action="{{ url_for('register') }}">
             {{ form.hidden_tag() }}

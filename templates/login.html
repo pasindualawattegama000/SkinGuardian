@@ -2,6 +2,12 @@
 
 {% block title %}Login{% endblock %}
 
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='loginForm.css') }}">
+{% endblock %}
+
+
 {% block content %}
 <div class="register-box">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -38,7 +44,7 @@
         <div class="form-field">
             {{ form.user_type.label }} {{ form.user_type }}
         </div>
-        
+
         <div class="form-field">
             {{ form.submit }}
         </div>

@@ -1,25 +1,68 @@
 {% extends "base.html" %}
 
+
 {% block title %}My Uploads{% endblock %}
+
+{% block styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='myUploads.css') }}">
+{% endblock %}
+
+
 
 {% block content %}
 <div class="container">
-    <h1>Prediction History</h1>
+    <h1 class="prediction-history-header">Prediction History</h1>
     
     {% if predictions %}
-        <ul class="">
+        <ul class="prediction-list">
             {% for prediction in predictions %}
-            <li class="">
-                Uploaded at: {{ prediction['uploaded_at'] }}<br>
-                Image: <img src="{{ url_for('skin_uploaded_file', filename=prediction['image_path']) }}" alt="Prediction Image" style="width:100px;"><br>
-                Prediction Details: {{ prediction['prediction_details'] }}
-            </li>
+                <li class="prediction-card">
+                    
+                    <div class="image-container">
+
+                        <img src="{{ url_for('skin_uploaded_file', filename=prediction['image_path']) }}"
+                            alt="Prediction Image"
+                            onclick="openComparator(this.src)">
+                    </div>
+                    <div class="prediction-details">
+                        <div class="prediction-date">Uploaded at: {{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                        <div class="prediction-text">Prediction Details: {{ prediction['prediction_details'] }}</div>
+                    </div>
+                </li>
             {% endfor %}
         </ul>
-
-        
     {% else %}
-        <p>No predictions have been made yet.</p>
+        <p class="no-predictions">No predictions have been made yet.</p>
     {% endif %}
+
+
+
+
 </div>
+
+<div id="comparatorModal" class="comparator-modal">
+    <div class="comparator-content">
+      
+      <div>
+        <span class="close" onclick="document.getElementById('comparatorModal').style.display='none'">&times;</span>
+        <h2>First Uploaded Image</h2>
+        <img src="{{ url_for('skin_uploaded_file', filename=first_prediction['image_path']) }}" alt="First Prediction Image">
+      </div>
+      <div>
+        <h2>Current Selected Image</h2>
+        <img id="currentSelected" src="" alt="Current Selected Image">
+      </div>
+    </div>
+  </div>
+  
+  
+
+<script>
+    function openComparator(selectedImageSrc) {
+      // Set the source for the current selected image
+      document.getElementById('currentSelected').src = selectedImageSrc;
+      // Display the modal
+      document.getElementById('comparatorModal').style.display = "block";
+    }
+  </script>
 {% endblock %}

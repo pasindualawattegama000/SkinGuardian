@@ -346,9 +346,17 @@ def my_uploads():
 
     user_id = session['id']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Ensure using DictCursor here
+    
+    cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at ASC LIMIT 1', (user_id,))
+    first_prediction = cursor.fetchone()
+
     cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at DESC', (user_id,))
     predictions = cursor.fetchall()
     
+
+
+    first_prediction['image_path'] = first_prediction['image_path'].replace('\\', '/')
+
     for prediction in predictions:
         prediction['image_path'] = prediction['image_path'].replace('\\', '/')
     
@@ -357,7 +365,7 @@ def my_uploads():
     
     print(predictions) 
 
-    return render_template('my_uploads.html', predictions=predictions)
+    return render_template('my_uploads.html', predictions=predictions, first_prediction=first_prediction)
 
 
 

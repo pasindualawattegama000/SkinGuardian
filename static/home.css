@@ -1,6 +1,12 @@
-html, body {
-    font-family: 'Franklin Gothic Medium', Arial, sans-serif;
-    background-color: #f3f7f2; 
+
+.container {
+    max-width: 800px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 2%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .flash-messages .alert {
@@ -15,3 +21,30 @@ html, body {
     background-color: #dff0d8;
     border-color: #d6e9c6;
 }
+
+
+input[type="submit"], button {
+    background-color: #4CAF50; 
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.3s ease-in-out;
+    width: auto; 
+}
+
+input[type="submit"]:hover, button:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+
+input[type="submit"]:active, button:active {
+    transform: scale(0.95);
+}
+
