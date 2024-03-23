@@ -33,7 +33,7 @@
                         
                     {% else %}
                         <li class="{{ 'active' if request.endpoint == 'profile' else '' }}"><a href="{{ url_for('profile') }}">My Profile</a></li>
-                        <li><a href="">My Uploads</a></li>
+                        <li class="{{ 'active' if request.endpoint == 'my_uploads' else '' }}"><a href="{{ url_for('my_uploads') }}">My Uploads</a></li>
                         <li><a href="">My Doctor</a></li>
                         <li><a href="">Doctor List</a></li>
                         

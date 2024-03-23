@@ -1,8 +1,108 @@
 {% extends "base.html" %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Home{% endblock %}
 
 {% block content %}
+<div class="container">
+    <h1>Welcome to the Skin Health Management System</h1>
+    <p>Upload an image of the skin condition you wish to analyze.</p>
+    <div id="flashMessages" class="flash-messages"></div>
 
-<h1>Welcome To SkinGuardian</h1>
+    <form id="imageUploadForm" enctype="multipart/form-data">
+        <input type="file" id="skinImage" name="skinImage" accept="image/*" onchange="previewImage();">
+        <img id="imagePreview" src="#" alt="Image preview" style="display: none; max-width: 500px; max-height: 300px; border-radius: 0%;"/>
+        
+        <input type="checkbox" id="savePrediction" name="savePrediction" value="true">
+        <label for="savePrediction">Save this prediction</label>
+        <br>
+
+        <div class="buttons" style="display: none;">
+            <button type="button" id="autoScan">Auto Scan</button>
+            <button type="button" id="cancerScan">Cancer Scan</button>
+            <button type="button" id="nonCancerousScan">Non-Cancerous Scan</button>
+        </div>
+    </form>
+
+    <!-- Results Section -->
+    <div id="predictionResults" style="display: none;">
+        <h2>Prediction Results</h2>
+        <p id="predictionText"></p>
+    </div>
+</div>
+
+
+<script>
+    function previewImage() {
+        var preview = document.getElementById('imagePreview');
+        var buttons = document.getElementsByClassName('buttons')[0]; // Accessing the first element of 'buttons' class
+        var file = document.getElementById('skinImage').files[0];
+    
+        // Check if a file is selected and if it's an image of correct format
+        if (file && (file.type === "image/jpeg" || file.type === "image/png")) {
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                preview.src = reader.result;
+                preview.style.display = 'block'; // Make the image visible
+                buttons.style.display = 'block'; // Show the buttons when a file is selected
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // If no file is selected or if the file is not an image of correct format
+            alert("Please select an image file (JPG or PNG).");
+            preview.src = "";
+            preview.style.display = 'none'; // Hide the image preview
+            buttons.style.display = 'none'; // Hide the buttons
+            document.getElementById('skinImage').value = ''; // Reset the file input
+        }
+    }
+    
+    document.getElementById('autoScan').addEventListener('click', function() {
+        uploadImage('autoScan');
+    });
+    
+    document.getElementById('cancerScan').addEventListener('click', function() {
+        uploadImage('cancerScan');
+    });
+    
+    document.getElementById('nonCancerousScan').addEventListener('click', function() {
+        uploadImage('nonCancerousScan');
+    });
+    
+    function uploadImage(scanType) {
+    let formData = new FormData();
+    let imageFile = document.getElementById('skinImage').files[0];
+    formData.append("skinImage", imageFile);
+    formData.append("scanType", scanType);
+    let savePrediction = document.getElementById('savePrediction').checked; // true if checked, false if not
+    formData.append("savePrediction", savePrediction ? "true" : "false");
+
+    fetch('/scan', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json()) // Assuming the server responds with JSON
+    .then(data => {
+        console.log(data);
+        // Here, you can update the DOM based on the response.
+        // For example, display the prediction result:
+        alert("Prediction: " + data.prediction);4
+        // Additionally, handle displaying the flash message
+        let flashMessages = document.getElementById('flashMessages');
+        let messageElement = `<div class="alert alert-success">${data.message}</div>`; // Adjust the class as needed
+        flashMessages.innerHTML = messageElement;
+
+        // Display the prediction in the results section
+        document.getElementById('predictionText').innerText = "Prediction: " + data.prediction;
+        document.getElementById('predictionResults').style.display = 'block';
+
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+
+    // Prevent the form from submitting traditionally
+    event.preventDefault();
+}
+    </script>
+    
 {% endblock %}

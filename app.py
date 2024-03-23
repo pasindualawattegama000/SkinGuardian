@@ -1,6 +1,6 @@
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    flash, session, send_from_directory
+    flash, session, send_from_directory, jsonify
 )
 from flask_wtf import FlaskForm
 from wtforms import (
@@ -13,6 +13,8 @@ import MySQLdb.cursors
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
+import json
+import uuid
 
 
 app = Flask(__name__)
@@ -25,6 +27,10 @@ app.config['MYSQL_PASSWORD'] = ''
 app.config['MYSQL_DB'] = 'geeklogin'
 app.config['UPLOAD_FOLDER'] = 'static/profile_images'
 app.config['DEFAULT_PROFILE_IMAGE'] = 'default_profile.png'
+app.config['SKIN_UPLOADS'] = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+
 
 mysql = MySQL(app)
 
@@ -234,25 +240,6 @@ def logout():
 
 #****************************** User Profile Managements********************************    
 
-# @app.route('/profile')
-# def profile():
-#     if session['user_type'] == 'admin':
-#         return redirect(url_for('home'))
-
-#     if 'loggedin' not in session:
-#         return redirect(url_for('login'))
-
-#     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-#     cursor.execute('SELECT * FROM accounts WHERE id = %s', (session['id'],))
-#     account = cursor.fetchone()
-
-#     profile_image = account['profile_image'] if account['profile_image'] else app.config['DEFAULT_PROFILE_IMAGE']
-#     profile_image_path = url_for('uploaded_file', filename=profile_image)
-
-#     return render_template('profile.html', account=account, profile_image=profile_image_path)
-
-
-
 @app.route('/profile')
 def profile():
     if 'loggedin' not in session:
@@ -338,14 +325,103 @@ def upload():
     return redirect(url_for('profile'))
 
 
+
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
-@app.route('/myUploads')
-def myUploads():
-    pass
+
+@app.route('/skinuploads/<filename>')
+def skin_uploaded_file(filename):
+    return send_from_directory(app.config['SKIN_UPLOADS'], filename)
+
+
+
+@app.route('/my_uploads')
+def my_uploads():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Ensure using DictCursor here
+    cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at DESC', (user_id,))
+    predictions = cursor.fetchall()
+    
+    for prediction in predictions:
+        prediction['image_path'] = prediction['image_path'].replace('\\', '/')
+    
+    cursor.close()
+
+    
+    print(predictions) 
+
+    return render_template('my_uploads.html', predictions=predictions)
+
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+from datetime import datetime
+import uuid
+
+@app.route('/scan', methods=['POST'])
+def scan_image():
+    # print(request.form)
+    # print(request.form.get('savePrediction'))
+
+    if 'loggedin' not in session:
+        return jsonify({"error": "User not logged in"}), 401  # User is not logged in
+
+    if 'skinImage' not in request.files:
+        flash('No file part')
+        return redirect(request.url)
+    
+    file = request.files['skinImage']
+    if file.filename == '':
+        flash('No selected file')
+        return redirect(request.url)
+    
+    if file and allowed_file(file.filename):
+        user_id = session['id']  # Retrieve user ID from session
+        original_filename = secure_filename(file.filename)
+        file_ext = original_filename.rsplit('.', 1)[1].lower()  # Get file extension
+        
+        # Generate a unique filename using the user's ID and a UUID
+        unique_filename = f"user_{user_id}_{uuid.uuid4().hex}.{file_ext}"
+        
+        filepath = os.path.join(app.config['SKIN_UPLOADS'], unique_filename)
+        file.save(filepath)
+        
+        scan_type = request.form.get('scanType')
+        
+        # Placeholder for model prediction logic
+        prediction = "Example prediction"  # Placeholder for actual prediction logic
+        
+        #-----------------------------------------
+        # Check if the user has chosen to save the prediction
+        # if 'savePrediction' in request.form and request.form['savePrediction'] == 'true':
+        if 'savePrediction' in request.form and request.form['savePrediction'] == 'true':
+            # Insert prediction details into the database
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute(
+                'INSERT INTO predictions (user_id, image_path, prediction_details) VALUES (%s, %s, %s)',
+                (user_id, unique_filename, prediction)
+            )
+            mysql.connection.commit()
+            cursor.close()
+            
+            return jsonify({'success': True, 'message': 'Your prediction has been saved.', 'prediction': prediction})
+        else:
+            os.remove(filepath)  # Delete the file
+            return jsonify({'success': True, 'message': 'Your prediction was not saved.', 'prediction': prediction})
+        
+
+    else:
+        flash('Invalid file type')
+        return redirect(request.url)
 
 # Run the app
 if __name__ == '__main__':
