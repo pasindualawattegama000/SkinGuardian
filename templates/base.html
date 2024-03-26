@@ -5,6 +5,7 @@
     <title>{% block title %}{% endblock %}</title>
     
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  
     
     <link rel="stylesheet" href="{{ url_for('static', filename='navbar.css') }}">
    
@@ -15,28 +16,39 @@
 
 </head>
 <body>
-    <nav>
+    <nav class="{{ 'navbar-patient' if session.get('user_type') == 'patient' else 'navbar-doctor' if session.get('user_type') == 'doctor' else 'navbar-admin' if session.get('user_type') == 'admin' else 'navbar' }}">
         <ul>
             <div class="nav-left">
                 <li><h4>SkinGuardan</h4></li>
-                <li class="{{ 'active' if request.endpoint == 'home' else '' }}"><a href="{{ url_for('home') }}">Home</a></li>
+
+                {% if 'loggedin' not in session %}
+                <li class="{{ 'active' if request.endpoint == 'noLoginHome' else '' }}"><a href="{{ url_for('noLoginHome') }}">Home</a></li>
+                {% endif %}
+
+
                 {% if 'loggedin' in session %}
+
+                    {% if session['user_type'] != 'admin' %}
+                        <li class="{{ 'active' if request.endpoint == 'home' else '' }}"><a href="{{ url_for('home') }}">Home</a></li>
+                    {% endif %}
+
                     {% if session['user_type'] == 'admin' %}
+                        <li class="{{ 'active' if request.endpoint == 'noLoginHome' else '' }}"><a href="{{ url_for('noLoginHome') }}">Home</a></li>
                         <li class="{{ 'active' if request.endpoint == 'doctorRegister' else '' }}"><a href="{{ url_for('doctorRegister') }}">Register Doctor</a></li>
-                        <li><a href="">Remove Doctor</a></li>
-                        <li><a href="">Remove Patient</a></li>
+                        <li  class="{{ 'active' if request.endpoint == 'remove_doctors' else '' }}"><a href="{{ url_for('remove_doctors') }}">Remove Doctor</a></li>
 
                     {% elif session['user_type'] == 'doctor' %}
-                        <li><a href="{{ url_for('profile') }}">My Profile</a></li>
-                        <li><a href="">My Patients</a></li>
+                        <li class="{{ 'active' if request.endpoint == 'profile' else '' }}"><a href="{{ url_for('profile') }}">My Profile</a></li>
+                        <li class="{{ 'active' if request.endpoint == 'my_patients' else '' }}"><a href="{{ url_for('my_patients') }}">My Patients</a></li>
+                        
                         <li><a href="">Patients</a></li>
-                        <li><a href="">Patient Requests</a></li>
+                        <li class="{{ 'active' if request.endpoint == 'patient_requests' else '' }}"><a href="{{ url_for('patient_requests') }}">Patient Requests</a></li>
                         
                     {% else %}
                         <li class="{{ 'active' if request.endpoint == 'profile' else '' }}"><a href="{{ url_for('profile') }}">My Profile</a></li>
                         <li class="{{ 'active' if request.endpoint == 'my_uploads' else '' }}"><a href="{{ url_for('my_uploads') }}">My Uploads</a></li>
-                        <li><a href="">My Doctor</a></li>
-                        <li><a href="">Doctor List</a></li>
+                        <li class="{{ 'active' if request.endpoint == 'my_doctor' else '' }}"><a href="{{ url_for('my_doctor') }}">My Doctor</a></li>
+                        <li class="{{ 'active' if request.endpoint == 'doctors_list' else '' }}"><a href="{{ url_for('doctors_list') }}">Doctor List</a></li>
                         
                     {% endif %}
                 {% endif %}
@@ -44,7 +56,13 @@
     
             <div class="nav-right">
                 {% if 'loggedin' in session %}
-                    <li><a href="#">{{ session.get('fullname') }}</a></li>
+
+                    {% if session['user_type'] == 'admin' %}
+                        <li><h4>Admin</h4></li>
+                    {% else %}
+                        <li><h4>{{ session.get('fullname') }}</h4></li>
+                    {% endif %}
+
                     <li class="{{ 'active' if request.endpoint == 'logout' else '' }}"><a href="{{ url_for('logout') }}">Logout</a></li>
                 {% else %}
                     <li class="{{ 'active' if request.endpoint == 'login' else '' }}"><a href="{{ url_for('login') }}">Login</a></li>

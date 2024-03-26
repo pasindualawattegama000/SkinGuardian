@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Remove Doctors{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='removeDoctors.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="my-patients-container">
+    <h1>Remove Doctors</h1>
+    {% if doctors %}
+        <ul>
+            {% for doctor in doctors %}
+                <li class="doctor-item">
+                    {{ doctor.firstname }} {{ doctor.lastname }} - {{ doctor.email }}
+                    <button onclick="removeDoctor({{ doctor.id }})" class="remove-btn">Remove</button>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No doctors to display.</p>
+    {% endif %}
+</div>
+
+
+
+<script>
+function removeDoctor(doctorId) {
+    if (confirm('Are you sure you want to remove this doctor?')) {
+        fetch('/delete_doctor/' + doctorId, {
+            method: 'POST',
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+}
+</script>
+{% endblock %}

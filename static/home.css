@@ -1,50 +1,79 @@
-
 .container {
     max-width: 800px;
-    margin: auto;
+    margin: 20px auto;
     background: white;
     padding: 20px;
     border-radius: 8px;
-    margin-top: 2%;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .flash-messages .alert {
     padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid transparent;
+    margin-bottom: 20px;
     border-radius: 4px;
+    background-color: #dff0d8;
+    border-color: #d6e9c6;
+    color: #3c763d;
 }
 
 .alert-success {
-    color: #3c763d;
     background-color: #dff0d8;
     border-color: #d6e9c6;
+    color: #3c763d;
 }
 
-
 input[type="submit"], button {
-    background-color: #4CAF50; 
+    background-color: #4CAF50;
     border: none;
     color: white;
-    padding: 5px 10px;
+    padding: 15px 30px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 12px;
-    margin: 4px 2px;
+    font-size: 16px;
+    margin: 10px 2px;
     cursor: pointer;
     border-radius: 12px;
-    transition: all 0.3s ease-in-out;
-    width: auto; 
+    transition: background-color 0.3s ease-in-out, transform 0.1s ease;
 }
 
 input[type="submit"]:hover, button:hover {
     background-color: #45a049;
-    transform: scale(1.05);
+    transform: translateY(-2px);
 }
 
 input[type="submit"]:active, button:active {
-    transform: scale(0.95);
+    background-color: #397d35;
+    transform: translateY(2px);
 }
+
+input[type="file"] {
+    margin: 20px 0;
+}
+
+#imagePreview {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+#predictionResults {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+}
+
+#predictionText {
+    font-size: 18px;
+    color: #333;
+}
+
 

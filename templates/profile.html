@@ -40,6 +40,9 @@
     </div>
 
     <button onclick="toggleUpdateInfoForm()">Update Your Information</button>
+
+    <button class="delete-profile-btn" onclick="deleteProfile()">Delete Profile</button>
+
     <div id="updateInfoForm" style="display: none;">
         <form action="{{ url_for('update_profile') }}" method="post">
             <input type="text" name="firstname" value="{{ account.firstname }}">
@@ -72,6 +75,25 @@
             form.style.display = "none";
         }
     }
+
+
+    function deleteProfile() {
+        const confirmed = confirm("Are you sure you want to delete your profile? This action cannot be undone.");
+        if (confirmed) {
+            fetch('/delete_profile', {
+                method: 'POST'
+            }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Profile deleted successfully.");
+                    window.location.href = '/login'; // Redirect to login
+                } else {
+                    alert("Error deleting profile: " + data.message);
+                }
+            }).catch(error => console.error('Error:', error));
+        }
+    }
+
 </script>
 
 {% endblock %}

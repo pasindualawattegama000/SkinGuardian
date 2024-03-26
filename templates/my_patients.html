@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}My Patients{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='myPatients.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="my-patients-container">
+    <h1>My Patients</h1>
+    {% if patients %}
+        <ul>
+            {% for patient in patients %}
+                <li>
+                    {{ patient.firstname }} {{ patient.lastname }} - {{ patient.email }}
+                    <a href="{{ url_for('patient_uploads', patient_id=patient.id) }}">View Uploads</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No patients linked yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

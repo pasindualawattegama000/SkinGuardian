@@ -12,8 +12,9 @@
 {% block content %}
 <div class="container">
     <h1 class="prediction-history-header">Prediction History</h1>
-    
+   
     {% if predictions %}
+    <button onclick="deleteAllPredictions()" class="delete-all-btn">Delete All</button>
         <ul class="prediction-list">
             {% for prediction in predictions %}
                 <li class="prediction-card">
@@ -27,6 +28,8 @@
                     <div class="prediction-details">
                         <div class="prediction-date">Uploaded at: {{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
                         <div class="prediction-text">Prediction Details: {{ prediction['prediction_details'] }}</div>
+                        <button class="delete-button" onclick="deletePrediction({{ prediction['id'] }})">Delete</button>
+                       
                     </div>
                 </li>
             {% endfor %}
@@ -46,7 +49,13 @@
       <div>
         <span class="close" onclick="document.getElementById('comparatorModal').style.display='none'">&times;</span>
         <h2>First Uploaded Image</h2>
+       
+        {% if first_prediction and first_prediction['image_path'] %}
         <img src="{{ url_for('skin_uploaded_file', filename=first_prediction['image_path']) }}" alt="First Prediction Image">
+        {% else %}
+        <p>No initial prediction image available.</p>
+        {% endif %}
+
       </div>
       <div>
         <h2>Current Selected Image</h2>
@@ -59,10 +68,41 @@
 
 <script>
     function openComparator(selectedImageSrc) {
-      // Set the source for the current selected image
       document.getElementById('currentSelected').src = selectedImageSrc;
-      // Display the modal
       document.getElementById('comparatorModal').style.display = "block";
     }
+
+
+    function deletePrediction(predictionId) {
+        fetch('/delete_prediction/' + predictionId, {
+            method: 'POST',
+        }).then(response => {
+            if (response.ok) {
+            location.reload();
+            }
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function deleteAllPredictions() {
+    if (confirm('Are you sure you want to delete all predictions?')) {
+        fetch('/delete_all_predictions', {
+            method: 'POST',
+           
+        }).then(response => {
+            if (response.ok) {
+                location.reload(); 
+            } else {
+                response.json().then(data => {
+                    console.error('Failed to delete all predictions:', data.message);
+                });
+            }
+        }).catch(error => {
+            console.error('Error:', error);
+        });
+    }
+}
+
   </script>
 {% endblock %}

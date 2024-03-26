@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}My Uploads{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='myUploads.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="prediction-history-header">Skin Analysis History</h1>
+   
+    {% if predictions %}
+        <ul class="prediction-list">
+            {% for prediction in predictions %}
+                <li class="prediction-card">
+                    <div class="image-container">
+                        <img src="{{ url_for('skin_uploaded_file', filename=prediction['image_path']) }}" alt="Skin Image" onclick="openComparator(this.src)">
+                    </div>
+                    <div class="prediction-details">
+                        <div class="prediction-date">Date: {{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                        <div class="prediction-text">Analysis: {{ prediction['prediction_details'] }}</div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-predictions">No skin analysis records available.</p>
+    {% endif %}
+</div>
+
+<div id="comparatorModal" class="comparator-modal">
+    <div class="comparator-content">
+        <div>
+            <span class="close" onclick="closeComparator()">&times;</span>
+            <h2>Initial Analysis Image</h2>
+            {% if first_prediction and first_prediction['image_path'] %}
+            <img src="{{ url_for('skin_uploaded_file', filename=first_prediction['image_path']) }}" alt="Initial Prediction Image">
+            {% else %}
+            <p>Initial image not available.</p>
+            {% endif %}
+        </div>
+        <div>
+            <h2>Selected Analysis Image</h2>
+            <img id="currentSelected" src="" alt="Selected Prediction Image">
+        </div>
+    </div>
+</div>
+
+<script>
+function openComparator(selectedImageSrc) {
+    document.getElementById('currentSelected').src = selectedImageSrc;
+    document.getElementById('comparatorModal').style.display = "block";
+}
+
+function closeComparator() {
+    document.getElementById('comparatorModal').style.display = "none";
+}
+</script>
+{% endblock %}

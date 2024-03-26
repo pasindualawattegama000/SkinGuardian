@@ -13,12 +13,11 @@
     <div id="flashMessages" class="flash-messages"></div>
 
     <form id="imageUploadForm" enctype="multipart/form-data">
+
         <input type="file" id="skinImage" name="skinImage" accept="image/*" onchange="previewImage();">
+
         <img id="imagePreview" src="#" alt="Image preview" style="display: none; max-width: 500px; max-height: 300px; border-radius: 0%;"/>
         
-        <input type="checkbox" id="savePrediction" name="savePrediction" value="true">
-        <label for="savePrediction">Save this prediction</label>
-        <br>
 
         <div class="buttons" style="display: none;">
             <button type="button" id="autoScan">Auto Scan</button>
@@ -46,8 +45,8 @@
             var reader = new FileReader();
             reader.onloadend = function() {
                 preview.src = reader.result;
-                preview.style.display = 'block'; // Make the image visible
-                buttons.style.display = 'block'; // Show the buttons when a file is selected
+                preview.style.display = 'block'; 
+                buttons.style.display = 'block'; 
             };
             reader.readAsDataURL(file);
         } else {
@@ -55,7 +54,7 @@
             alert("Please select an image file (JPG or PNG).");
             preview.src = "";
             preview.style.display = 'none'; 
-            buttons.style.display = 'none';
+            buttons.style.display = 'none'; 
             document.getElementById('skinImage').value = ''; // Reset the file input
         }
     }
@@ -77,10 +76,8 @@
     let imageFile = document.getElementById('skinImage').files[0];
     formData.append("skinImage", imageFile);
     formData.append("scanType", scanType);
-    let savePrediction = document.getElementById('savePrediction').checked; // true if checked, false if not
-    formData.append("savePrediction", savePrediction ? "true" : "false");
 
-    fetch('/scan', {
+    fetch('/scan_no_account', {
         method: 'POST',
         body: formData
     })
@@ -88,12 +85,7 @@
     .then(data => {
         console.log(data);
         alert("Prediction: " + data.prediction);
-
-        let flashMessages = document.getElementById('flashMessages');
-        let messageElement = `<div class="alert alert-success">${data.message}</div>`; // Adjust the class as needed
-        flashMessages.innerHTML = messageElement;
-
-
+        // Display the prediction in the results section
         document.getElementById('predictionText').innerText = "Prediction: " + data.prediction;
         document.getElementById('predictionResults').style.display = 'block';
 

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Requests{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='patient_requests.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container patient-requests-container">
+    <h1>Patient Requests</h1>
+    {% if requests %}
+        <ul class="requests-list">
+            {% for request in requests %}
+                <li class="request-item">
+                    <div class="patient-info">
+                        <h3>{{ request.firstname }} {{ request.lastname }}</h3>
+                        <p>Email: {{ request.email }}</p>
+                        <p>Contact: {{ request.contact }}</p>  
+                    </div>
+                    <div class="request-actions">
+                        <button onclick="acceptPatientRequest({{ request.request_id }})" class="btn accept-btn">Accept</button>
+                        <button onclick="declinePatientRequest({{ request.request_id }})" class="btn decline-btn">Decline</button>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="no-requests">No patient requests at the moment.</p>
+    {% endif %}
+</div>
+
+<script>
+    function acceptPatientRequest(requestId) {
+        fetch('/accept_patient_request/' + requestId, {
+            method: 'POST',
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+    </script>
+{% endblock %}

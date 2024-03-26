@@ -6,8 +6,31 @@ ul {
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #007451;
+    /* background-color: #007451; */
 }
+
+.navbar {
+    /* display: flex;
+    justify-content: space-between;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; */
+    background-color: #333; /* Default color */
+}
+
+.navbar-patient {
+    background-color: #007451; /* Green for patient */
+}
+
+.navbar-doctor {
+    background-color: #052093; /* Blue for doctor */
+}
+
+.navbar-admin {
+    background-color: #910101; /* Red for admin */
+}
+
 
 .nav-left, .nav-center, .nav-right {
     display: flex;
