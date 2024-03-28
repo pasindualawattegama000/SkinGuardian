@@ -59,3 +59,29 @@
     text-align: center;
     color: #666;
 }
+
+
+input[type="submit"], button {
+    background-color: #585858; 
+    border: none;
+    color: white;
+    padding: 5px 10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.3s ease-in-out;
+    width: auto; 
+}
+
+input[type="submit"]:hover, button:hover {
+    background-color: #2a2b2a; 
+    transform: scale(1.05);
+}
+
+input[type="submit"]:active, button:active {
+    transform: scale(0.95);
+}

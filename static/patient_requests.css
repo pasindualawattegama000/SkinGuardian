@@ -1,5 +1,5 @@
-.patient-requests-container {
-    max-width: 800px;
+.my-patients-container {
+    max-width: 1000px;
     margin: auto;
     padding: 20px;
     border-radius: 8px;
@@ -8,52 +8,88 @@
     margin-top: 20px;
 }
 
-.patient-requests-container h1 {
+.my-patients-container h1 {
     text-align: center;
     color: #333;
 }
 
-.requests-list {
+/* .my-patients-container ul {
     list-style: none;
     padding: 0;
-    margin: 0;
+} */
+
+.my-patients-container ul {
+    padding-left: 0; 
+    /* display: flex;  */
+    /* flex-direction: column;  */
+    align-items: center; 
+    background-color: #00745100;
+    
 }
 
-.request-item {
+.my-patients-container .patient-requests-list {
+    padding-left: 0; 
+    align-items: center; 
+    background-color: #00745100;
+}
+
+.my-patients-container .patient-requests-list {
+    list-style-type: none; 
+    padding-left: 0;
+    display: flex;
+    flex-direction: column; 
+    align-items: center; 
+    width: 100%; 
+}
+
+
+.my-patients-container .patient-request-item {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.8);
     background-color: #f9f9f9;
     border: 1px solid #ddd;
     margin-bottom: 10px;
-    padding: 15px;
+    padding: 10px;
     border-radius: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%; 
+    box-sizing: border-box;
 }
 
-.patient-info h3 {
-    margin: 0;
-    color: #4CAF50;
+.my-patients-container li {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; 
+    box-sizing: border-box;
 }
 
-.patient-info p {
-    margin: 5px 0;
+.my-patients-container a {
+    text-decoration: none;
+    background-color: #052093;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.my-patients-container a:hover {
+    background-color: #052093;
+    color: white;
+}
+
+.my-patients-container p {
+    text-align: center;
     color: #666;
 }
 
-.request-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.btn {
-    text-decoration: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    font-size: 14px;
-    cursor: pointer;
-    border: none;
-    transition: background-color 0.3s ease;
-}
 
 .accept-btn {
     background-color: #28a745;
