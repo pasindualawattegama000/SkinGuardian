@@ -563,11 +563,11 @@ def prepare_image(file_path, target_size=(200, 200)):
 
 def interpret_prediction(model_name, prediction):
     if model_name == 'cancer_scan_model':
-        class_labels = ['Class1', 'Class2', 'Class3', 'Class4']
+        class_labels = ['Actinic Keratoese', 'Basal Cell Carcinoma', 'Melanocytic Nevi', 'Melanoma']
         predicted_class = class_labels[np.argmax(prediction)]
 
     elif model_name == 'non_cancerous_scan_model':
-        class_labels = ['Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6', 'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12', 'Class13']
+        class_labels = ['Acne', 'Bacterial Infections', 'bkl', 'df', 'Eczema', 'Herpes', 'Lentigo', 'Normal Skin', 'Porphyrias', 'Psoriasis', 'Vasculitis Photos', 'Vitiligo', 'Warts']
         predicted_class = class_labels[np.argmax(prediction)]
     else:
         predicted_class = 'Unknown Model'
@@ -623,7 +623,7 @@ def scan_image():
                 model_name = 'non_cancerous_scan_model'
                 ML_prediction = model.predict(preprocessed_Img)
                 disease_class = interpret_prediction(model_name, ML_prediction)
-                print('non cancerous bitch')
+                print('non cancerous')
             else:
                 disease_type = "Cancerous"
 
@@ -631,7 +631,7 @@ def scan_image():
                 model_name = 'cancer_scan_model'
                 ML_prediction = model.predict(preprocessed_Img)
                 disease_class = interpret_prediction(model_name, ML_prediction)
-                print('cancerous bitch')
+                print('cancerous')
 
 
         elif scan_type == 'cancerScan':
@@ -846,12 +846,6 @@ def accept_patient_request(request_id):
 
 
 
-
-
-
-
-
-
 @app.route('/my_patients', methods=['GET'])
 def my_patients():
     if 'loggedin' not in session or session['user_type'] != 'doctor':
@@ -940,7 +934,7 @@ def scan_no_account():
                 model_name = 'non_cancerous_scan_model'
                 ML_prediction = model.predict(preprocessed_Img)
                 disease_class = interpret_prediction(model_name, ML_prediction)
-                print('non cancerous bitch')
+                print('non cancerous')
             else:
                 disease_type = "Cancerous"
 
@@ -948,7 +942,7 @@ def scan_no_account():
                 model_name = 'cancer_scan_model'
                 ML_prediction = model.predict(preprocessed_Img)
                 disease_class = interpret_prediction(model_name, ML_prediction)
-                print('cancerous bitch')
+                print('cancerous')
 
 
         elif scan_type == 'cancerScan':

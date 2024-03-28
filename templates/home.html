@@ -10,7 +10,7 @@
 <div class="container">
     <h1>Welcome to the Skin Health Management System</h1>
     <p>Upload an image of the skin condition you wish to analyze.</p>
-    <div id="flashMessages" class="flash-messages"></div>
+    
 
     <form id="imageUploadForm" enctype="multipart/form-data">
         <input type="file" id="skinImage" name="skinImage" accept="image/*" onchange="previewImage();">
@@ -28,6 +28,7 @@
     </form>
 
     <!-- Results Section -->
+    <div id="flashMessages" class="flash-messages"></div>
     <div id="predictionResults" style="display: none;">
         <h2>Prediction Results</h2>
         <p id="predictionText"></p>
