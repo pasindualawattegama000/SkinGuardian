@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}My Uploads{% endblock %}
+{% block title %}Patient Uploads{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='myUploads.css') }}">
@@ -19,8 +19,21 @@
                     </div>
                     <div class="prediction-details">
                         <div class="prediction-date">Date: {{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
-                        <div class="prediction-text">Analysis: {{ prediction['prediction_details'] }}</div>
+                        <div class="prediction-text">{{ prediction['prediction_details'].replace('\n', '<br>')|safe  }}</div>
                     </div>
+
+                    {% if prediction.comment %}
+                        <div class="comment-section">
+                            <div class="comment">Comment: {{ prediction.comment.comment }}</div>
+                            <div class="comment-date">Date: {{ prediction.comment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                        </div>
+                    {% else %}
+                        <form action="{{ url_for('submit_comment', prediction_id=prediction['id']) }}" method="POST">
+                            <textarea name="comment" placeholder="Leave a comment..." required></textarea>
+                            <input type="submit" value="Submit Comment">
+                        </form>
+                    {% endif %}
+
                 </li>
             {% endfor %}
         </ul>
@@ -31,8 +44,8 @@
 
 <div id="comparatorModal" class="comparator-modal">
     <div class="comparator-content">
+        <span class="close" onclick="closeComparator()">&times;</span>
         <div>
-            <span class="close" onclick="closeComparator()">&times;</span>
             <h2>Initial Analysis Image</h2>
             {% if first_prediction and first_prediction['image_path'] %}
             <img src="{{ url_for('skin_uploaded_file', filename=first_prediction['image_path']) }}" alt="Initial Prediction Image">
@@ -56,5 +69,9 @@ function openComparator(selectedImageSrc) {
 function closeComparator() {
     document.getElementById('comparatorModal').style.display = "none";
 }
+
+
+
+
 </script>
 {% endblock %}

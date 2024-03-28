@@ -158,3 +158,39 @@ input[type="submit"]:hover, button:hover {
 input[type="submit"]:active, button:active {
     transform: scale(0.95);
 }
+
+.comments-section {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f2f2f2; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+}
+
+.comments-section h4 {
+    margin-bottom: 10px;
+    color: #333; 
+    font-size: 18px; 
+}
+
+.comment {
+    padding: 8px;
+    margin-bottom: 10px;
+    background-color: #fff; 
+    border-left: 4px solid #007bff; 
+    border-radius: 4px; 
+}
+
+.comment p {
+    margin: 0; 
+    color: #555; 
+}
+
+.comment-date {
+    display: block; 
+    margin-top: 5px; 
+    font-size: 14px; 
+    color: #666; 
+}
+
+

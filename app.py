@@ -278,6 +278,7 @@ def logout():
     session.pop('email', None)
     session.pop('fullname',None)
     session.pop('user_type',None)
+    
     try:
         session['_flashes'] = []  
     except KeyError:
@@ -475,6 +476,10 @@ def my_uploads():
     for prediction in predictions:
         prediction['image_path'] = prediction['image_path'].replace('\\', '/')
     
+    for prediction in predictions:
+        cursor.execute('SELECT * FROM comments WHERE prediction_id = %s ORDER BY created_at DESC', (prediction['id'],))
+        comments = cursor.fetchall()
+        prediction['comments'] = comments
     cursor.close()
 
     
@@ -880,19 +885,71 @@ def patient_uploads(patient_id):
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM accounts WHERE id = %s AND doctor_id = %s', (patient_id, doctor_id))
         patient = cursor.fetchone()
+
         if not patient:
             flash("You do not have access to this patient's uploads.", "danger")
             return redirect(url_for('my_patients'))
 
         # Fetch patient's uploads if the doctor is linked
-        cursor.execute('SELECT * FROM predictions WHERE user_id = %s', (patient_id,))
+      
+        cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at ASC LIMIT 1', (patient_id,))
+        first_prediction = cursor.fetchone()
+
+        cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at DESC', (patient_id,))
         predictions = cursor.fetchall()
-        return render_template('patient_uploads.html', predictions=predictions, patient=patient)
+
+        if first_prediction:
+            first_prediction['image_path'] = first_prediction['image_path'].replace('\\', '/')
+            print(first_prediction)
+        else:
+            first_prediction = {'image_path': ''} 
+
+        for prediction in predictions:
+            prediction['image_path'] = prediction['image_path'].replace('\\', '/')
+
+        # Fetch comments for each prediction and attach them
+        for prediction in predictions:
+            cursor.execute('SELECT * FROM comments WHERE prediction_id = %s', (prediction['id'],))
+            comment = cursor.fetchone()  
+            prediction['comment'] = comment
+
+
+        session['viewing_patient_id'] = patient_id
+        return render_template('patient_uploads.html', predictions=predictions, patient=patient, first_prediction=first_prediction if first_prediction else None)
     except Exception as e:
         flash(f"An error occurred: {e}", "error")
         return redirect(url_for('my_patients'))
     finally:
         cursor.close()
+
+
+
+@app.route('/submit_comment/<int:prediction_id>', methods=['POST'])
+def submit_comment(prediction_id):
+    if 'loggedin' not in session or session['user_type'] != 'doctor':
+        # Only logged in doctors should be able to submit comments
+        return redirect(url_for('login'))
+
+    # Get the doctor ID from the session
+    doctor_id = session['id']
+    comment_text = request.form['comment']
+
+    # Insert the comment into the database
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('INSERT INTO comments (prediction_id, doctor_id, comment) VALUES (%s, %s, %s)', (prediction_id, doctor_id, comment_text))
+        mysql.connection.commit()
+        flash('Comment submitted successfully', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash('Failed to submit comment', 'error')
+        print(f"An error occurred: {e}")
+    finally:
+        cursor.close()
+    
+    return redirect(url_for('patient_uploads', patient_id=session['viewing_patient_id']))
+
+
 
 
 #-----------------------------------------------------------------------------

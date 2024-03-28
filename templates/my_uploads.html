@@ -30,6 +30,17 @@
                         <div class="prediction-text">{{ prediction['prediction_details'].replace('\n', '<br>')|safe }}</div>
                         <button class="delete-button" onclick="deletePrediction({{ prediction['id'] }})">Delete</button>
                        
+                        {% if prediction.comments %}
+                            <div class="comments-section">
+                                <h4>Comments:</h4>
+                                {% for comment in prediction.comments %}
+                                    <div class="comment">
+                                        <p>{{ comment.comment }}</p>
+                                        <span class="comment-date">{{ comment.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
                     </div>
                 </li>
             {% endfor %}
