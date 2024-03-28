@@ -8,13 +8,22 @@ from wtforms import (
     SelectField, DateField
 )
 from wtforms.validators import InputRequired, Email, Length, ValidationError
+
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 import json
 import uuid
+from datetime import datetime
+
+from tensorflow import keras
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.imagenet_utils import preprocess_input
+import numpy as np
+
 
 
 app = Flask(__name__)
@@ -32,6 +41,11 @@ app.config['TEMPORARY_FOLDER'] = 'static/temp_Uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 
+
+# Load the models
+auto_scan_model = keras.models.load_model('models/ModelFDC.keras')
+cancer_scan_model = keras.models.load_model('models/ModelFSC.keras')
+non_cancerous_scan_model = keras.models.load_model('models/ModelFSD.keras')
 
 mysql = MySQL(app)
 
@@ -79,7 +93,7 @@ def doctorRegister():
         email = form.email.data
         password = generate_password_hash(form.password.data)
         specialty = form.specialty.data
-        contact = form.contact.data  # Get the contact data from the form
+        contact = form.contact.data  # Get the data from the form
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute(
@@ -90,7 +104,7 @@ def doctorRegister():
         cursor.close()   
 
         flash('The new doctor has been successfully registered.', 'success')
-        return redirect(url_for('doctorRegister'))  # Redirect to an admin dashboard or other appropriate page.
+        return redirect(url_for('doctorRegister'))  
 
     return render_template('doctorRegister.html', form=form)
 
@@ -125,7 +139,6 @@ def delete_doctor(doctor_id):
 
         return jsonify({'success': True, 'message': 'Doctor removed successfully'})
     except Exception as e:
-        # Log the error for debugging purposes
         print(f"An error occurred: {e}")
         return jsonify({'error': 'Failed to remove the doctor'}), 500
 
@@ -313,6 +326,24 @@ def delete_profile():
 
 
 
+@app.route('/cancel_doctor_request', methods=['POST'])
+def cancel_doctor_request():
+    if 'loggedin' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user_id = session['id']
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('DELETE FROM doctor_requests WHERE patient_id = %s', (user_id,))
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({'success': True, 'message': 'Doctor request cancelled successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
+
 
 @app.route('/profile')
 def profile():
@@ -321,11 +352,16 @@ def profile():
 
     user_type = session.get('user_type')
     user_id = session.get('id')
+    has_requested_doctor = False
 
     if user_type == 'doctor':
         table_name = 'doctors'
     else:
-        table_name = 'accounts'  # Assuming all other users are patients 
+        table_name = 'accounts'  # other users are patients
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM doctor_requests WHERE patient_id = %s', (user_id,))
+        has_requested_doctor = cursor.fetchone() is not None
+        cursor.close()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(f'SELECT * FROM {table_name} WHERE id = %s', (user_id,))
@@ -340,7 +376,7 @@ def profile():
     if account.get('profile_image'):
         profile_image_path = url_for('uploaded_file', filename=account['profile_image'])
 
-    return render_template('profile.html', account=account, profile_image=profile_image_path, user_type=user_type)
+    return render_template('profile.html', account=account, profile_image=profile_image_path, user_type=user_type, has_requested_doctor=has_requested_doctor)
 
 
 
@@ -509,12 +545,33 @@ def delete_all_predictions():
 
 
 
+# ----------------------------------------------------------------------------------------------
+#                        SCAN IMAGES FUNCTIONALITY
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-from datetime import datetime
-import uuid
+
+def prepare_image(file_path, target_size=(200, 200)):
+    img = image.load_img(file_path, target_size=target_size)
+    img_array = image.img_to_array(img)
+    img_array_expanded_dims = np.expand_dims(img_array, axis=0)
+    return preprocess_input(img_array_expanded_dims)
+
+
+def interpret_prediction(model_name, prediction):
+    if model_name == 'cancer_scan_model':
+        class_labels = ['Class1', 'Class2', 'Class3', 'Class4']
+        predicted_class = class_labels[np.argmax(prediction)]
+
+    elif model_name == 'non_cancerous_scan_model':
+        class_labels = ['Class1', 'Class2', 'Class3', 'Class4', 'Class5', 'Class6', 'Class7', 'Class8', 'Class9', 'Class10', 'Class11', 'Class12', 'Class13']
+        predicted_class = class_labels[np.argmax(prediction)]
+    else:
+        predicted_class = 'Unknown Model'
+    
+    return predicted_class
+
 
 @app.route('/scan', methods=['POST'])
 def scan_image():
@@ -546,26 +603,77 @@ def scan_image():
         file.save(filepath)
         
         scan_type = request.form.get('scanType')
-        
-        # Placeholder for model prediction logic
-        prediction = "Example prediction"  # Placeholder for actual prediction logic
-        
-        #-----------------------------------------
-        # Check if the user has chosen to save the prediction
+ 
+        #Preprocessing the input image
+        preprocessed_Img = prepare_image(filepath)
+
+        disease_type = ''
+        disease_class = ''
+
+        if scan_type == 'autoScan':
+            model = auto_scan_model
+            ML_prediction = model.predict(preprocessed_Img)
+
+            if ML_prediction == [[0.]]:
+                disease_type = "Non cancerous"
+
+                model = non_cancerous_scan_model
+                model_name = 'non_cancerous_scan_model'
+                ML_prediction = model.predict(preprocessed_Img)
+                disease_class = interpret_prediction(model_name, ML_prediction)
+                print('non cancerous bitch')
+            else:
+                disease_type = "Cancerous"
+
+                model = cancer_scan_model
+                model_name = 'cancer_scan_model'
+                ML_prediction = model.predict(preprocessed_Img)
+                disease_class = interpret_prediction(model_name, ML_prediction)
+                print('cancerous bitch')
+
+
+        elif scan_type == 'cancerScan':
+            disease_type = "Cancerous"
+
+            model = cancer_scan_model
+            model_name = 'cancer_scan_model'
+            ML_prediction = model.predict(preprocessed_Img)
+
+            disease_class = interpret_prediction(model_name, ML_prediction)
+
+
+        elif scan_type == 'nonCancerousScan':
+            disease_type = "Non cancerous"
+
+            model = non_cancerous_scan_model
+            model_name = 'non_cancerous_scan_model'
+            ML_prediction = model.predict(preprocessed_Img)
+
+            disease_class = interpret_prediction(model_name, ML_prediction)
+
+
+
+        else:
+            return jsonify({'error': 'Invalid scan type specified'}), 400
+
+
+        prediction_details = f"Disease Type: {disease_type}\nDisease Class: {disease_class}"
+
+# ----------------------------------------------------------------------
 
         if 'savePrediction' in request.form and request.form['savePrediction'] == 'true':
             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
             cursor.execute(
                 'INSERT INTO predictions (user_id, image_path, prediction_details) VALUES (%s, %s, %s)',
-                (user_id, unique_filename, prediction)
+                (user_id, unique_filename, prediction_details)
             )
             mysql.connection.commit()
             cursor.close()
             
-            return jsonify({'success': True, 'message': 'Your prediction has been saved.', 'prediction': prediction})
+            return jsonify({'success': True, 'message': 'Your prediction has been saved.', 'prediction': prediction_details})
         else:
             os.remove(filepath)  # Delete the file
-            return jsonify({'success': True, 'message': 'Your prediction was not saved.', 'prediction': prediction})
+            return jsonify({'success': True, 'message': 'Your prediction was not saved.', 'prediction': prediction_details})
         
 
     else:
@@ -573,6 +681,9 @@ def scan_image():
         return redirect(request.url)
 
 
+
+
+# ----------------------------------------------------------------------------------------------------
 
 
 @app.route('/doctors')
@@ -728,6 +839,17 @@ def accept_patient_request(request_id):
         cursor.close()
 
 
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/my_patients', methods=['GET'])
 def my_patients():
     if 'loggedin' not in session or session['user_type'] != 'doctor':
@@ -800,13 +922,62 @@ def scan_no_account():
         temp_filepath = os.path.join(app.config['TEMPORARY_FOLDER'], unique_filename)
         file.save(temp_filepath)
 
-        
-        prediction = "Example prediction"  
+        scan_type = request.form.get('scanType')
+        disease_type = ''
+        disease_class = ''
+        preprocessed_Img = prepare_image(temp_filepath)
 
+        if scan_type == 'autoScan':
+            model = auto_scan_model
+            ML_prediction = model.predict(preprocessed_Img)
+
+            if ML_prediction == [[0.]]:
+                disease_type = "Non cancerous"
+
+                model = non_cancerous_scan_model
+                model_name = 'non_cancerous_scan_model'
+                ML_prediction = model.predict(preprocessed_Img)
+                disease_class = interpret_prediction(model_name, ML_prediction)
+                print('non cancerous bitch')
+            else:
+                disease_type = "Cancerous"
+
+                model = cancer_scan_model
+                model_name = 'cancer_scan_model'
+                ML_prediction = model.predict(preprocessed_Img)
+                disease_class = interpret_prediction(model_name, ML_prediction)
+                print('cancerous bitch')
+
+
+        elif scan_type == 'cancerScan':
+            disease_type = "Cancerous"
+
+            model = cancer_scan_model
+            model_name = 'cancer_scan_model'
+            ML_prediction = model.predict(preprocessed_Img)
+
+            disease_class = interpret_prediction(model_name, ML_prediction)
+
+
+        elif scan_type == 'nonCancerousScan':
+            disease_type = "Non cancerous"
+
+            model = non_cancerous_scan_model
+            model_name = 'non_cancerous_scan_model'
+            ML_prediction = model.predict(preprocessed_Img)
+
+            disease_class = interpret_prediction(model_name, ML_prediction)
+
+
+
+        else:
+            return jsonify({'error': 'Invalid scan type specified'}), 400
+
+        prediction_details = f"Disease Type: {disease_type}\nDisease Class: {disease_class}"
         # Delete the temporary file after prediction
         os.remove(temp_filepath)
 
-        return jsonify({'success': True, 'message': 'Prediction made successfully.', 'prediction': prediction})
+        return jsonify({'success': True, 'message': 'Prediction made successfully.', 'prediction': prediction_details})
     else:
         return jsonify({"error": "Invalid file type"}), 400
 
