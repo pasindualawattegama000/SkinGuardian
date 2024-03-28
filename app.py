@@ -43,20 +43,17 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 
 
 # Load the models
-# auto_scan_model = keras.models.load_model('models/ModelFDC.keras')
-# cancer_scan_model = keras.models.load_model('models/ModelFSC.keras')
-# non_cancerous_scan_model = keras.models.load_model('models/ModelFSD.keras')
+auto_scan_model = keras.models.load_model('models/ModelFDC.keras')
+cancer_scan_model = keras.models.load_model('models/ModelFSC.keras')
+non_cancerous_scan_model = keras.models.load_model('models/ModelFSD.keras')
 
 
-auto_scan_model = keras.models.load_model("C:\Users\pasin\Documents\GitHub\models\ModelFDC.keras")
-cancer_scan_model = keras.models.load_model("C:\Users\pasin\Documents\GitHub\models\ModelFSC.keras")
-non_cancerous_scan_model = keras.models.load_model("C:\Users\pasin\Documents\GitHub\models\ModelFSD.keras")
 
 mysql = MySQL(app)
 
 
 
-@app.route('/')
+
 @app.route('/home', endpoint='home')
 def home():
     return render_template('home.html')
