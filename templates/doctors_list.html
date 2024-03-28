@@ -3,26 +3,33 @@
 {% block title %}Doctor List{% endblock %}
 
 {% block styles %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='doctorsList.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='doctorsList.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='removeDoctors.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1>Doctors</h1>
-    <div class="doctors-list">
-        {% for doctor in doctors %}
-            <div class="doctor-card">
-                <h2>{{ doctor.firstname }} {{ doctor.lastname }}</h2>
-                <p><strong>Email:</strong> {{ doctor.email }}</p>
-                <p><strong>Specialty:</strong> {{ doctor.specialty }}</p>
-                <p><strong>Contact:</strong> {{ doctor.contact }}</p>
-                <button onclick="requestDoctor({{ doctor.id }})">Request Doctor</button>
-            </div>
-        {% else %}
-            <p>No doctors found.</p>
-        {% endfor %}
-    </div>
+
+
+<div class="my-patients-container">
+    <h1>Doctor List</h1>
+ 
+        <ul>
+            {% for doctor in doctors %}
+                <li class="doctor-item">
+                    <h2>Dr.{{ doctor.firstname }} {{ doctor.lastname }}</h2>
+                    <p><strong>Email:</strong> {{ doctor.email }}</p>
+                    <p><strong>Specialty:</strong> {{ doctor.specialty }}</p>
+                    <p><strong>Contact:</strong> {{ doctor.contact }}</p>
+                    <button onclick="requestDoctor({{ doctor.id }})">Request Doctor</button>
+                
+                </li>
+                {% else %}
+                <p class="no-requests">No doctors found at the moment.</p>
+            {% endfor %}
+        </ul>
+  
 </div>
+
 
 <script>
 function requestDoctor(doctorId) {

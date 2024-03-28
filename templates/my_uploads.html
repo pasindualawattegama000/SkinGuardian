@@ -27,7 +27,7 @@
                     </div>
                     <div class="prediction-details">
                         <div class="prediction-date">Uploaded at: {{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
-                        <div class="prediction-text">Prediction Details: {{ prediction['prediction_details'] }}</div>
+                        <div class="prediction-text">{{ prediction['prediction_details'].replace('\n', '<br>')|safe }}</div>
                         <button class="delete-button" onclick="deletePrediction({{ prediction['id'] }})">Delete</button>
                        
                     </div>
@@ -45,9 +45,9 @@
 
 <div id="comparatorModal" class="comparator-modal">
     <div class="comparator-content">
-      
-      <div>
-        <span class="close" onclick="document.getElementById('comparatorModal').style.display='none'">&times;</span>
+
+    <span class="close" onclick="document.getElementById('comparatorModal').style.display='none'">&times;</span>
+      <div> 
         <h2>First Uploaded Image</h2>
        
         {% if first_prediction and first_prediction['image_path'] %}

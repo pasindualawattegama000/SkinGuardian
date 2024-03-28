@@ -43,6 +43,10 @@
 
     <button class="delete-profile-btn" onclick="deleteProfile()">Delete Profile</button>
 
+    {% if user_type == 'patient' and has_requested_doctor %}
+        <button id="cancelDoctorRequestBtn">Cancel Doctor Request</button>
+    {% endif %}
+
     <div id="updateInfoForm" style="display: none;">
         <form action="{{ url_for('update_profile') }}" method="post">
             <input type="text" name="firstname" value="{{ account.firstname }}">
@@ -93,6 +97,29 @@
             }).catch(error => console.error('Error:', error));
         }
     }
+
+
+    document.getElementById('cancelDoctorRequestBtn')?.addEventListener('click', function() {
+        fetch('/cancel_doctor_request', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert("Doctor request cancelled successfully.");
+                window.location.reload();
+            } else {
+                alert("Error cancelling doctor request: " + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert("An error occurred while cancelling the doctor request.");
+        });
+    });
 
 </script>
 

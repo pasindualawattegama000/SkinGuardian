@@ -7,28 +7,25 @@
 {% endblock %}
 
 {% block content %}
-<div class="container patient-requests-container">
+
+
+<div class="my-patients-container">
     <h1>Patient Requests</h1>
-    {% if requests %}
-        <ul class="requests-list">
-            {% for request in requests %}
-                <li class="request-item">
-                    <div class="patient-info">
-                        <h3>{{ request.firstname }} {{ request.lastname }}</h3>
-                        <p>Email: {{ request.email }}</p>
-                        <p>Contact: {{ request.contact }}</p>  
-                    </div>
-                    <div class="request-actions">
-                        <button onclick="acceptPatientRequest({{ request.request_id }})" class="btn accept-btn">Accept</button>
-                        <button onclick="declinePatientRequest({{ request.request_id }})" class="btn decline-btn">Decline</button>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class="no-requests">No patient requests at the moment.</p>
-    {% endif %}
+    <ul class="patient-requests-list">
+        {% for request in requests %}
+            <li class="patient-request-item">
+                <strong>Name:</strong> {{ request.patient_name }}
+                <strong>Email:</strong> {{ request.email }}
+                <p><strong>Contact:</strong> {{ request.contact }}</p>
+                <button onclick="acceptPatientRequest({{ request.request_id }})" class="btn accept-btn">Accept</button>
+                <button onclick="declinePatientRequest({{ request.request_id }})" class="btn decline-btn">Decline</button>
+            </li>
+        {% else %}
+            <p class="no-requests">No patient requests at the moment.</p>
+        {% endfor %}
+    </ul>
 </div>
+
 
 <script>
     function acceptPatientRequest(requestId) {

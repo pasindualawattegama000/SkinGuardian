@@ -94,8 +94,10 @@
         flashMessages.innerHTML = messageElement;
 
 
-        document.getElementById('predictionText').innerText = "Prediction: " + data.prediction;
+        document.getElementById('predictionText').innerText =  data.prediction;
         document.getElementById('predictionResults').style.display = 'block';
+        document.getElementById('predictionResults').scrollIntoView({behavior: 'smooth'});
+
 
     })
     .catch(error => {

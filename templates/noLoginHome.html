@@ -15,7 +15,6 @@
     <form id="imageUploadForm" enctype="multipart/form-data">
 
         <input type="file" id="skinImage" name="skinImage" accept="image/*" onchange="previewImage();">
-
         <img id="imagePreview" src="#" alt="Image preview" style="display: none; max-width: 500px; max-height: 300px; border-radius: 0%;"/>
         
 
@@ -84,17 +83,17 @@
     .then(response => response.json()) 
     .then(data => {
         console.log(data);
-        alert("Prediction: " + data.prediction);
+        // alert("Prediction: " + data.prediction);
         // Display the prediction in the results section
         document.getElementById('predictionText').innerText = "Prediction: " + data.prediction;
         document.getElementById('predictionResults').style.display = 'block';
+        document.getElementById('predictionResults').scrollIntoView({behavior: 'smooth'});
 
     })
     .catch(error => {
         console.error('Error:', error);
     });
 
-    // Prevent the form from submitting traditionally
     event.preventDefault();
 }
     </script>

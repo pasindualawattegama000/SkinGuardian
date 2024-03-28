@@ -40,8 +40,6 @@
                     {% elif session['user_type'] == 'doctor' %}
                         <li class="{{ 'active' if request.endpoint == 'profile' else '' }}"><a href="{{ url_for('profile') }}">My Profile</a></li>
                         <li class="{{ 'active' if request.endpoint == 'my_patients' else '' }}"><a href="{{ url_for('my_patients') }}">My Patients</a></li>
-                        
-                        <li><a href="">Patients</a></li>
                         <li class="{{ 'active' if request.endpoint == 'patient_requests' else '' }}"><a href="{{ url_for('patient_requests') }}">Patient Requests</a></li>
                         
                     {% else %}
@@ -76,7 +74,7 @@
     {% block content %}{% endblock %}
 
     <script type="text/javascript">
-         // Close the alert after 5 seconds (5000 ms)
+         // Close the alert after 5 seconds 
         window.setTimeout(function() {
             $(".alert").fadeTo(500, 0).slideUp(500, function(){
                 $(this).remove(); 
