@@ -23,7 +23,7 @@
 
                         <img src="{{ url_for('skin_uploaded_file', filename=prediction['image_path']) }}"
                             alt="Prediction Image"
-                            onclick="openComparator(this.src)">
+                            onclick="openComparator(this.src,  '{{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}' , '{{ prediction['prediction_details'].replace('\n', '<br>')|safe }}')">
                     </div>
                     <div class="prediction-details">
                         <div class="prediction-date">Uploaded at: {{ prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
@@ -60,27 +60,32 @@
     <span class="close" onclick="document.getElementById('comparatorModal').style.display='none'">&times;</span>
       <div> 
         <h2>First Uploaded Image</h2>
-       
         {% if first_prediction and first_prediction['image_path'] %}
         <img src="{{ url_for('skin_uploaded_file', filename=first_prediction['image_path']) }}" alt="First Prediction Image">
+        <div class="prediction-date">Uploaded at: {{ first_prediction['uploaded_at'].strftime('%Y-%m-%d %H:%M:%S') }}</div>
+        <div class="prediction-text">{{ first_prediction['prediction_details'].replace('\n', '<br>')|safe }}</div>
         {% else %}
         <p>No initial prediction image available.</p>
         {% endif %}
-
       </div>
       <div>
         <h2>Current Selected Image</h2>
         <img id="currentSelected" src="" alt="Current Selected Image">
+        <div id="currentSelectedUploadDate" class="prediction-date"></div>
+        <div id="currentSelectedPredictionDetails" class="prediction-text"></div>
       </div>
     </div>
   </div>
   
   
-
 <script>
-    function openComparator(selectedImageSrc) {
+    function openComparator(selectedImageSrc, uploadedAt, predictionDetails) {
       document.getElementById('currentSelected').src = selectedImageSrc;
       document.getElementById('comparatorModal').style.display = "block";
+      document.getElementById('currentSelectedUploadDate').innerText = "Uploaded at: " + uploadedAt;
+      document.getElementById('currentSelectedPredictionDetails').innerHTML = predictionDetails.replace(/\n/g, '<br>');
+      console.log(uploadedAt);
+      console.log(predictionDetails);
     }
 
 

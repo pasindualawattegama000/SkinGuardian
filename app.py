@@ -25,15 +25,14 @@ from tensorflow.keras.applications.imagenet_utils import preprocess_input
 import numpy as np
 
 
-
 app = Flask(__name__)
 
 # Configuration
-app.config['SECRET_KEY'] = 'your-very-very-secret-key'
+app.config['SECRET_KEY'] = 'jdjf7jqjd939393jajdcnjsdc9w0203kakmkamc'
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = ''
-app.config['MYSQL_DB'] = 'geeklogin'
+app.config['MYSQL_DB'] = 'fyp'
 app.config['UPLOAD_FOLDER'] = 'static/profile_images'
 app.config['DEFAULT_PROFILE_IMAGE'] = 'default_profile.png'
 app.config['SKIN_UPLOADS'] = 'static/uploads'
@@ -45,8 +44,8 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 # Load the models
 auto_scan_model = keras.models.load_model('models/ModelFDC.keras')
 cancer_scan_model = keras.models.load_model('models/ModelFSC.keras')
-non_cancerous_scan_model = keras.models.load_model('models/ModelFSD.keras')
-
+non_cancerous_scan_model = keras.models.load_model('models/NEW_ModelFSD.keras')
+# non_cancerous_scan_model = keras.models.load_model('models/ModelFSD3ssss.keras')
 
 
 mysql = MySQL(app)
@@ -59,8 +58,9 @@ def home():
     return render_template('home.html')
 
 
-# -------------------------Doctor registration form ----------------------------
+# -------------------------------------------------------------
 #                        ADMIN METHODS
+# -------------------------------------------------------------
 
 # Doctor Registration Form
 class DoctorRegistrationForm(FlaskForm):
@@ -80,10 +80,14 @@ class DoctorRegistrationForm(FlaskForm):
         if doctor:
             raise ValidationError('An email address already exists.')
 
-
+#registering doctors and is only allowed to admins
 @app.route('/doctorRegister', methods=['GET', 'POST'])
 def doctorRegister():
     if not session.get('loggedin') or session.get('user_type') != 'admin':
+        try:
+            session['_flashes'] = []  
+        except KeyError:
+            pass  
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('login'))
 
@@ -111,7 +115,7 @@ def doctorRegister():
     return render_template('doctorRegister.html', form=form)
 
 
-
+# used to load a html page with the existing list of doctors
 @app.route('/remove_doctors', methods=['GET'])
 def remove_doctors():
     if 'loggedin' not in session or session['user_type'] != 'admin':
@@ -127,7 +131,7 @@ def remove_doctors():
     finally:
         cursor.close()
 
-
+#deletes a specific doctor by id
 @app.route('/delete_doctor/<int:doctor_id>', methods=['POST'])
 def delete_doctor(doctor_id):
     if 'loggedin' not in session or session['user_type'] != 'admin':
@@ -135,6 +139,7 @@ def delete_doctor(doctor_id):
 
     try:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('UPDATE accounts SET doctor_id = NULL WHERE doctor_id = %s', (doctor_id,))
         cursor.execute('DELETE FROM doctors WHERE id = %s', (doctor_id,))
         mysql.connection.commit()
         cursor.close()
@@ -144,10 +149,188 @@ def delete_doctor(doctor_id):
         print(f"An error occurred: {e}")
         return jsonify({'error': 'Failed to remove the doctor'}), 500
 
+# -------------------------------------------------------------
+#                      END OF ADMIN METHODS
+# -------------------------------------------------------------
 
 
 
-# -------------------------Patient registration form ----------------------------
+
+# -------------------------------------------------------------
+#                        DOCTOR METHODS
+# -------------------------------------------------------------
+
+
+# Doctors can view patient requests for consultations or diagnoses.
+@app.route('/patient_requests', methods=['GET'])
+def patient_requests():
+    if 'loggedin' not in session or session['user_type'] != 'doctor':
+        # Unauthorized access, redirect to login page
+        flash('Please log in to view patient requests.', 'warning')
+        return redirect(url_for('login'))
+
+    doctor_id = session['id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        cursor.execute('''
+            SELECT r.id AS request_id, a.id AS patient_id, CONCAT(a.firstname, ' ', a.lastname) AS patient_name, a.contact, a.email 
+            FROM doctor_requests r
+            JOIN accounts a ON r.patient_id = a.id
+            WHERE r.doctor_id = %s
+        ''', (doctor_id,))
+        requests = cursor.fetchall()
+        return render_template('patient_requests.html', requests=requests)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        flash('Failed to retrieve patient requests.', 'error')
+        return render_template('error_page.html')  
+    finally:
+        cursor.close()
+
+
+# Allows doctors to accept patient requests, linking the patient to them for future consultations.
+@app.route('/accept_patient_request/<int:request_id>', methods=['POST'])
+def accept_patient_request(request_id):
+    if 'loggedin' not in session or session['user_type'] != 'doctor':
+        return jsonify({'error': 'Unauthorized access'}), 403
+
+    doctor_id = session['id']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        # Retrieve the patient_id from doctor_requests table
+        cursor.execute('SELECT patient_id FROM doctor_requests WHERE id = %s', (request_id,))
+        patient_request = cursor.fetchone()
+
+        if patient_request:
+            patient_id = patient_request['patient_id']
+            # Update the accounts table to link patient with doctor
+            cursor.execute('UPDATE accounts SET doctor_id = %s WHERE id = %s', (doctor_id, patient_id))
+            # Delete the request from doctor_requests table
+            cursor.execute('DELETE FROM doctor_requests WHERE id = %s', (request_id,))
+            mysql.connection.commit()
+            return jsonify({'success': True, 'message': 'Patient request accepted'})
+        else:
+            return jsonify({'error': 'Request not found'}), 404
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({'error': 'Failed to accept patient request'}), 500
+    finally:
+        cursor.close()
+
+
+# display a list of their linked patients.
+@app.route('/my_patients', methods=['GET'])
+def my_patients():
+    if 'loggedin' not in session or session['user_type'] != 'doctor':
+        flash("Unauthorized access. Please login as a doctor.", "danger")
+        return redirect(url_for('login'))
+
+    doctor_id = session['id']
+   
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT id, firstname, lastname, email, contact FROM accounts WHERE doctor_id = %s', (doctor_id,))
+        patients = cursor.fetchall()
+        # print(patients)
+        return render_template('my_patients.html', patients=patients)
+    except Exception as e:
+        print("error")
+        flash(f"An error occurred: {e}", "error")
+        return redirect(url_for('home'))
+    finally:
+        cursor.close()
+
+
+# Allows doctors to view skin condition uploads by their patients
+@app.route('/patient_uploads/<int:patient_id>', methods=['GET'])
+def patient_uploads(patient_id):
+    # Ensure the doctor is logged in and is linked to the patient
+    if 'loggedin' not in session or session['user_type'] != 'doctor':
+        flash("Unauthorized access. Please login as a doctor.", "danger")
+        return redirect(url_for('login'))
+
+    doctor_id = session['id']
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM accounts WHERE id = %s AND doctor_id = %s', (patient_id, doctor_id))
+        patient = cursor.fetchone()
+
+        if not patient:
+            flash("You do not have access to this patient's uploads.", "danger")
+            return redirect(url_for('my_patients'))
+
+        # Fetch patient's uploads if the doctor is linked
+      
+        cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at ASC LIMIT 1', (patient_id,))
+        first_prediction = cursor.fetchone()
+
+        cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at DESC', (patient_id,))
+        predictions = cursor.fetchall()
+
+        if first_prediction:
+            first_prediction['image_path'] = first_prediction['image_path'].replace('\\', '/')
+            print(first_prediction)
+        else:
+            first_prediction = {'image_path': ''} 
+
+        for prediction in predictions:
+            prediction['image_path'] = prediction['image_path'].replace('\\', '/')
+
+        # Fetch comments for each prediction and attach them
+        for prediction in predictions:
+            cursor.execute('SELECT * FROM comments WHERE prediction_id = %s', (prediction['id'],))
+            comment = cursor.fetchone()  
+            prediction['comment'] = comment
+
+
+        session['viewing_patient_id'] = patient_id
+        return render_template('patient_uploads.html', predictions=predictions, patient=patient, first_prediction=first_prediction if first_prediction else None)
+    except Exception as e:
+        flash(f"An error occurred: {e}", "error")
+        return redirect(url_for('my_patients'))
+    finally:
+        cursor.close()
+
+
+# submit comments on patient uploads, providing diagnoses or advice.
+@app.route('/submit_comment/<int:prediction_id>', methods=['POST'])
+def submit_comment(prediction_id):
+    if 'loggedin' not in session or session['user_type'] != 'doctor':
+        # Only logged in doctors should be able to submit comments
+        return redirect(url_for('login'))
+
+    # Get the doctor ID from the session
+    doctor_id = session['id']
+    comment_text = request.form['comment']
+
+    # Insert the comment into the database
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('INSERT INTO comments (prediction_id, doctor_id, comment) VALUES (%s, %s, %s)', (prediction_id, doctor_id, comment_text))
+        mysql.connection.commit()
+        flash('Comment submitted successfully', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash('Failed to submit comment', 'error')
+        print(f"An error occurred: {e}")
+    finally:
+        cursor.close()
+    
+    return redirect(url_for('patient_uploads', patient_id=session['viewing_patient_id']))
+
+
+
+# -------------------------------------------------------------
+#                      END OF DOCTOR METHODS
+# -------------------------------------------------------------
+
+
+
+# -------------------------------------------------------------
+#                      PATIENT METHODS
+# -------------------------------------------------------------
+
+# Patient registration form 
 class RegistrationForm(FlaskForm):
     firstname = StringField('First Name', validators=[InputRequired(), Length(min=1, max=50)])
     lastname = StringField('Last Name', validators=[InputRequired(), Length(min=1, max=50)])
@@ -166,7 +349,6 @@ class RegistrationForm(FlaskForm):
         if account:
             raise ValidationError('An account with this email already exists.')
 
-
 # Login Form
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[InputRequired(), Email()])
@@ -174,6 +356,8 @@ class LoginForm(FlaskForm):
     user_type = SelectField('Login As', choices=[('patient', 'Patient'), ('doctor', 'Doctor'), ('admin', 'Admin')])
     submit = SubmitField('Login')
 
+
+# Allowing new patients to register by providing their details.
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm(request.form)
@@ -198,261 +382,16 @@ def register():
 
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    form = LoginForm(request.form)
-    if form.validate_on_submit():
-        email = form.email.data
-        password = form.password.data
-        user_type = form.user_type.data
-
-        if user_type == 'doctor':
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute('SELECT * FROM doctors WHERE email =%s',(email,))
-
-        elif user_type == 'admin':
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute('SELECT * FROM admins WHERE email =%s',(email,))
-
-        else:
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute('SELECT * FROM accounts WHERE email =%s',(email,))
-
-
-        account = cursor.fetchone()
-
-
-        if user_type == "doctor":
-            if account and check_password_hash(account['password'], password):
-                firstname= account['firstname']
-                lastname = account['lastname']
-                fullname = firstname +" " +lastname
-                session['fullname'] = fullname
-                session['email'] = account['email']
-                
-                session['loggedin'] = True
-                session['id'] = account['id']
-                session['user_type'] = user_type
-                flash('Logged in successfully!', 'success')
-                return redirect(url_for('profile'))  # Loading profile page when login successful.
-            else:
-                flash( 'Login Unsuccessful. Please check email and password', 'danger')
-                #flash(user_type, 'danger')
-
-
-
-        elif user_type == "admin":
-            if account and check_password_hash(account['password'], password):
-                firstname = account['email']
-                session['firstname'] = firstname
-                session['loggedin'] = True
-                session['id'] = account['id']
-                session['user_type'] = user_type
-                flash('Logged in successfully!', 'success')
-                return redirect(url_for('noLoginHome')) 
-            else:
-                flash('Admin Login Unsuccessful. Please check email and password', 'danger')
-        
-        else:
-            if account and check_password_hash(account['password'], password):
-                firstname= account['firstname']
-                lastname = account['lastname']
-                fullname = firstname +" " +lastname
-                session['fullname'] = fullname
-                session['email'] = account['email']
-                
-                session['loggedin'] = True
-                session['id'] = account['id']
-                session['user_type'] = user_type
-                flash('Logged in successfully!', 'success')
-                return redirect(url_for('profile'))  # Loading profile page when login successful.
-            else:
-                flash('Login Unsuccessful. Please check email and password', 'danger')
-                #flash(user_type, 'danger')
-    return render_template('login.html', form=form)
-
-@app.route('/logout')
-def logout():
-    session.pop('loggedin', None)
-    session.pop('id', None)
-    session.pop('email', None)
-    session.pop('fullname',None)
-    session.pop('user_type',None)
-    
-    try:
-        session['_flashes'] = []  
-    except KeyError:
-        pass  
-
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('login'))
-
-
-
-
-#****************************** User Profile Managements********************************    
-
-
-@app.route('/delete_profile', methods=['POST'])
-def delete_profile():
-    if 'loggedin' not in session:
-        return jsonify({'error': 'User not logged in'}), 403
-
-    user_id = session['id']
-    user_type = session['user_type']
-
-    print(user_id)
-
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        # If the user is a doctor, handle their patient requests and unlink patients
-        if user_type == 'doctor':
-            cursor.execute('DELETE FROM doctor_requests WHERE doctor_id = %s', (user_id,))
-            # cursor.execute('UPDATE accounts SET doctor_id = NULL WHERE doctor_id = %s', (user_id,))
-            cursor.execute('DELETE FROM doctors WHERE id = %s', (user_id,))
-
-        # If the user is a patient, remove any pending doctor requests
-        elif user_type == 'patient':
-            cursor.execute('DELETE FROM doctor_requests WHERE patient_id = %s', (user_id,))
-            cursor.execute('DELETE FROM accounts WHERE id = %s', (user_id,))        
-
-        mysql.connection.commit()
-        cursor.close()
-        session.clear()
-        return redirect(url_for('login'), code=302)
-
-    except Exception as e:
-        mysql.connection.rollback()
-        print(f"An error occurred: {e}")
-        flash('Error deleting profile. Please try again.', 'error')
-        return redirect(url_for('profile'))
-
-
-
-@app.route('/cancel_doctor_request', methods=['POST'])
-def cancel_doctor_request():
-    if 'loggedin' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-
-    user_id = session['id']
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('DELETE FROM doctor_requests WHERE patient_id = %s', (user_id,))
-        mysql.connection.commit()
-        cursor.close()
-        return jsonify({'success': True, 'message': 'Doctor request cancelled successfully'})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
-
-
-
-@app.route('/profile')
-def profile():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-
-    user_type = session.get('user_type')
-    user_id = session.get('id')
-    has_requested_doctor = False
-
-    if user_type == 'doctor':
-        table_name = 'doctors'
-    else:
-        table_name = 'accounts'  # other users are patients
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM doctor_requests WHERE patient_id = %s', (user_id,))
-        has_requested_doctor = cursor.fetchone() is not None
-        cursor.close()
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(f'SELECT * FROM {table_name} WHERE id = %s', (user_id,))
-    account = cursor.fetchone()
-
-    if not account:
-        flash('User not found.', 'danger')
-        return redirect(url_for('home'))
-
-    # Handle displaying default profile image if none exists
-    profile_image_path = url_for('static', filename='default_profile.png')  # Default image
-    if account.get('profile_image'):
-        profile_image_path = url_for('uploaded_file', filename=account['profile_image'])
-
-    return render_template('profile.html', account=account, profile_image=profile_image_path, user_type=user_type, has_requested_doctor=has_requested_doctor)
-
-
-
-
-@app.route('/update_profile', methods=['POST'])
-def update_profile():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-
-    firstname = request.form['firstname']
-    lastname = request.form['lastname']
-    contact = request.form['contact']
-    new_password = request.form['password'].strip()
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    if new_password:
-        hashed_password = generate_password_hash(new_password)
-        cursor.execute('UPDATE accounts SET firstname = %s, lastname = %s, contact = %s, password = %s WHERE id = %s', (firstname, lastname, contact, hashed_password, session['id']))
-    else:
-        cursor.execute('UPDATE accounts SET firstname = %s, lastname = %s, contact = %s WHERE id = %s', (firstname, lastname, contact, session['id']))
-
-    mysql.connection.commit()
-    flash('Your profile has been updated successfully!', 'success')
-
-    return redirect(url_for('profile'))
-
-
-
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
-
-    if 'profile_image' in request.files:
-        file = request.files['profile_image']
-        if file.filename != '':
-            filename = secure_filename(file.filename)
-            unique_filename = f"user_{session['id']}_{filename}"
-
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute('SELECT profile_image FROM accounts WHERE id = %s', (session['id'],))
-            account = cursor.fetchone()
-            old_image = account.get('profile_image') if account else None
-
-            if old_image and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], old_image)):
-                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], old_image))
-
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
-            file.save(file_path)
-
-            cursor.execute('UPDATE accounts SET profile_image = %s WHERE id = %s', (unique_filename, session['id']))
-            mysql.connection.commit()
-            flash('Your profile image has been updated!', 'success')
-
-    return redirect(url_for('profile'))
-
-
-
-
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-
 
 @app.route('/skinuploads/<filename>')
 def skin_uploaded_file(filename):
     return send_from_directory(app.config['SKIN_UPLOADS'], filename)
 
 
-
+# Allows patients to view their past skin condition scans and the system's predictions.
 @app.route('/my_uploads')
 def my_uploads():
     if 'loggedin' not in session:
@@ -481,26 +420,32 @@ def my_uploads():
         comments = cursor.fetchall()
         prediction['comments'] = comments
     cursor.close()
-
-    
-    print(predictions) 
+    # print(predictions) 
 
     return render_template('my_uploads.html', predictions=predictions, first_prediction=first_prediction if first_prediction else None)
 
 
-
-
+# Allowing Patients to delete individual predictions
 @app.route('/delete_prediction/<int:prediction_id>', methods=['POST'])
 def delete_prediction(prediction_id):
+    
     if 'loggedin' not in session:
         return jsonify({'error': 'User not logged in'}), 401
 
     try:
+        user_id = session['id']
+       
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         # Retrieve the image path before deletion
         cursor.execute('SELECT image_path FROM predictions WHERE id = %s', (prediction_id,))
         prediction = cursor.fetchone()
         
+        
+        # if not prediction or prediction['user_id'] != user_id:
+        #     cursor.close()
+        #     return jsonify({'error': 'Unauthorized deletion attempt'}), 403
+        
+        # print(session['id'])
         if prediction and prediction['image_path']:
             # Delete the prediction from the database
             cursor.execute('DELETE FROM predictions WHERE id = %s', (prediction_id,))
@@ -519,7 +464,7 @@ def delete_prediction(prediction_id):
         return jsonify({'error': 'Unable to delete the prediction'}), 500
 
 
-
+# Allowing Patients to delete all predictions
 @app.route('/delete_all_predictions', methods=['POST'])
 def delete_all_predictions():
     if 'loggedin' not in session:
@@ -551,6 +496,125 @@ def delete_all_predictions():
 
 
 
+# Allows patients to cancel doctor requests
+@app.route('/cancel_doctor_request', methods=['POST'])
+def cancel_doctor_request():
+    if 'loggedin' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user_id = session['id']
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('DELETE FROM doctor_requests WHERE patient_id = %s', (user_id,))
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({'success': True, 'message': 'Doctor request cancelled successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# displays a list of doctor, which allows the user to select a doctor
+@app.route('/doctors')
+def doctors_list():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))  # Redirect to login page if not logged in
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT * FROM doctors ORDER BY lastname, firstname')
+    doctors = cursor.fetchall()
+    cursor.close()
+    return render_template('doctors_list.html', doctors=doctors)
+
+# displays the details of the linked doctor
+@app.route('/my_doctor')
+def my_doctor():
+    if 'loggedin' not in session or session['user_type'] != 'patient':
+        return redirect(url_for('login'))  # Only logged-in patients can view their doctor
+
+    profile_image_path = ''
+    user_id = session.get('id')
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute('SELECT doctor_id FROM accounts WHERE id = %s', (user_id,))
+    account = cursor.fetchone()
+
+    if account and account['doctor_id']:
+        cursor.execute('SELECT * FROM doctors WHERE id = %s', (account['doctor_id'],))
+        doctor = cursor.fetchone()
+        cursor.close()
+        if(doctor):
+            # Handle displaying default profile image if none exists
+            profile_image_path = url_for('static', filename='default_profile.png')  # Default image
+            if account.get('profile_image'):
+                profile_image_path = url_for('uploaded_file', filename=account['profile_image'])
+
+            # profile_image = doctor.get('profile_image', app.config['DEFAULT_PROFILE_IMAGE'])
+            # profile_image_path = url_for('uploaded_file', filename=profile_image)
+        else:
+            profile_image_path = url_for('static', filename='default_profile.png')
+
+        return render_template('my_doctor.html', doctor=doctor, profile_image=profile_image_path)
+    else:
+        cursor.close()
+        flash('No doctor assigned to your account.', 'warning')
+        return render_template('my_doctor.html', doctor=None)
+
+
+
+# allowing patients to remove the doctor
+@app.route('/remove_doctor/<int:doctor_id>', methods=['POST'])
+def remove_doctor(doctor_id):
+    if 'loggedin' not in session or session['user_type'] != 'patient':
+        return jsonify({'error': 'Not authorized'}), 403
+
+    user_id = session.get('id')
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('UPDATE accounts SET doctor_id = NULL WHERE id = %s', (user_id,))
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({'success': True, 'message': 'Doctor removed successfully'})
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({'error': 'Unable to remove doctor'}), 500
+
+
+# allowing patient to request a doctor form the exsisting doctor list
+@app.route('/request_doctor/<int:doctor_id>', methods=['POST'])
+def request_doctor(doctor_id):
+    if 'loggedin' not in session or session['user_type'] != 'patient':
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    patient_id = session['id']
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # Check if a request already exists or patient already has a doctor
+        cursor.execute('SELECT * FROM doctor_requests WHERE patient_id = %s', (patient_id,))
+        existing_request = cursor.fetchone()
+        if existing_request:
+            return jsonify({'error': 'You have already sent a request.'}), 400
+
+        cursor.execute('SELECT doctor_id FROM accounts WHERE id = %s', (patient_id,))
+        account = cursor.fetchone()
+        if account['doctor_id']:
+            return jsonify({'error': 'You already have a doctor.'}), 400
+
+        # Insert new request
+        cursor.execute(
+            'INSERT INTO doctor_requests (patient_id, doctor_id) VALUES (%s, %s)',
+            (patient_id, doctor_id)
+        )
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({'success': True, 'message': 'Doctor request sent successfully'})
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return jsonify({'error': 'Unable to send doctor request'}), 500
+
+
+
+
 
 # ----------------------------------------------------------------------------------------------
 #                        SCAN IMAGES FUNCTIONALITY
@@ -566,14 +630,55 @@ def prepare_image(file_path, target_size=(200, 200)):
     return preprocess_input(img_array_expanded_dims)
 
 
+# from tensorflow.keras.applications.vgg16 import preprocess_input, VGG16
+# from tensorflow.keras.preprocessing import image
+# import numpy as np
+# import cv2
+
+# # Load the feature extraction (VGG) model
+# vgg_model = VGG16(weights='imagenet', include_top=False, input_shape=(200, 200, 3))
+
+# def prepare_image(file_path, target_size=(200, 200)):
+#     # Load and resize the image using OpenCV
+#     img = cv2.imread(file_path)
+#     img = cv2.resize(img, target_size)
+    
+#     # Convert BGR image to RGB
+#     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    
+#     # Normalize pixel values to [0, 1], and add a batch dimension
+#     img_normalized = np.array(img) / 255.0
+#     img_expanded = np.expand_dims(img_normalized, axis=0)
+    
+#     # Use VGG16 for feature extraction
+#     features = vgg_model.predict(img_expanded)
+    
+#     # Reshape the features to the expected input shape of your custom models
+#     features_reshaped = features.reshape(1, -1)
+    
+#     return features_reshaped
+
+
+
+
+
+
 def interpret_prediction(model_name, prediction):
     if model_name == 'cancer_scan_model':
         class_labels = ['Actinic Keratoese', 'Basal Cell Carcinoma', 'Melanocytic Nevi', 'Melanoma']
         predicted_class = class_labels[np.argmax(prediction)]
 
     elif model_name == 'non_cancerous_scan_model':
-        class_labels = ['Acne', 'Bacterial Infections', 'bkl', 'df', 'Eczema', 'Herpes', 'Lentigo', 'Normal Skin', 'Porphyrias', 'Psoriasis', 'Vasculitis Photos', 'Vitiligo', 'Warts']
+        # class_labels = ['Acne', 'Bacterial Infections', 'bkl', 'df', 'Eczema', 'Herpes', 'Lentigo', 'Normal Skin', 'Porphyrias', 'Psoriasis', 'Vasculitis Photos', 'Vitiligo', 'Warts']
+        #class_labels = ['Acne','Eczema','Herpes','Normal Skin','Psoriasis','Vitiligo','Warts']
+        class_labels = ['Acne','Eczema','Herpes','Psoriasis','Vitiligo','Warts']
+        # class_labels = ['Acne','Bacterial Infections','Eczema','Normal Skin','Psoriasis','Vasculitis','Vitiligo']
+        # class_labels = ['Acne','Eczema','Herpes','Psoriasis','Vitiligo','Warts']
+        # class_labels = ['Acne','Eczema','Herpes','Vitiligo','Warts']
+        # class_labels = ['Acne','Eczema','Herpes','Psoriasis','Vitiligo','Warts']
+        
         predicted_class = class_labels[np.argmax(prediction)]
+        
     else:
         predicted_class = 'Unknown Model'
     
@@ -689,271 +794,333 @@ def scan_image():
 
 
 
-
-# ----------------------------------------------------------------------------------------------------
-
-
-@app.route('/doctors')
-def doctors_list():
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))  # Redirect to login page if not logged in
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT * FROM doctors ORDER BY lastname, firstname')
-    doctors = cursor.fetchall()
-    cursor.close()
-    return render_template('doctors_list.html', doctors=doctors)
-
-
-@app.route('/my_doctor')
-def my_doctor():
-    if 'loggedin' not in session or session['user_type'] != 'patient':
-        return redirect(url_for('login'))  # Only logged-in patients can view their doctor
-
-    user_id = session.get('id')
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute('SELECT doctor_id FROM accounts WHERE id = %s', (user_id,))
-    account = cursor.fetchone()
-
-    if account and account['doctor_id']:
-        cursor.execute('SELECT * FROM doctors WHERE id = %s', (account['doctor_id'],))
-        doctor = cursor.fetchone()
-        cursor.close()
-
-        profile_image = doctor.get('profile_image', app.config['DEFAULT_PROFILE_IMAGE'])
-        profile_image_path = url_for('uploaded_file', filename=profile_image)
-
-        return render_template('my_doctor.html', doctor=doctor, profile_image=profile_image_path)
-    else:
-        cursor.close()
-        flash('No doctor assigned to your account.', 'warning')
-        return render_template('my_doctor.html', doctor=None)
+# -------------------------------------------------------------
+#                      END OF PATIENT METHODS
+# -------------------------------------------------------------
 
 
 
 
-@app.route('/remove_doctor/<int:doctor_id>', methods=['POST'])
-def remove_doctor(doctor_id):
-    if 'loggedin' not in session or session['user_type'] != 'patient':
-        return jsonify({'error': 'Not authorized'}), 403
+# -------------------------------------------------------------
+#                     GENERAL METHODS
+# -------------------------------------------------------------
 
-    user_id = session.get('id')
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('UPDATE accounts SET doctor_id = NULL WHERE id = %s', (user_id,))
-        mysql.connection.commit()
-        cursor.close()
-        return jsonify({'success': True, 'message': 'Doctor removed successfully'})
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return jsonify({'error': 'Unable to remove doctor'}), 500
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm(request.form)
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+        user_type = form.user_type.data
+
+        if user_type == 'doctor':
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('SELECT * FROM doctors WHERE email =%s',(email,))
+
+        elif user_type == 'admin':
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('SELECT * FROM admins WHERE email =%s',(email,))
+
+        else:
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute('SELECT * FROM accounts WHERE email =%s',(email,))
 
 
-
-@app.route('/request_doctor/<int:doctor_id>', methods=['POST'])
-def request_doctor(doctor_id):
-    if 'loggedin' not in session or session['user_type'] != 'patient':
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    patient_id = session['id']
-
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-        # Check if a request already exists or patient already has a doctor
-        cursor.execute('SELECT * FROM doctor_requests WHERE patient_id = %s', (patient_id,))
-        existing_request = cursor.fetchone()
-        if existing_request:
-            return jsonify({'error': 'You have already sent a request.'}), 400
-
-        cursor.execute('SELECT doctor_id FROM accounts WHERE id = %s', (patient_id,))
         account = cursor.fetchone()
-        if account['doctor_id']:
-            return jsonify({'error': 'You already have a doctor.'}), 400
 
-        # Insert new request
-        cursor.execute(
-            'INSERT INTO doctor_requests (patient_id, doctor_id) VALUES (%s, %s)',
-            (patient_id, doctor_id)
-        )
+
+        if user_type == "doctor":
+            if account and check_password_hash(account['password'], password):
+                firstname= account['firstname']
+                lastname = account['lastname']
+                fullname = firstname +" " +lastname
+                session['fullname'] = fullname
+                session['email'] = account['email']
+                
+                session['loggedin'] = True
+                session['id'] = account['id']
+                session['user_type'] = user_type
+                flash('Logged in successfully!', 'success')
+                return redirect(url_for('profile'))  # Loading profile page when login successful.
+            else:
+                flash( 'Login Unsuccessful. Please check email and password', 'danger')
+                #flash(user_type, 'danger')
+
+
+
+        elif user_type == "admin":
+            if account and check_password_hash(account['password'], password):
+                firstname = account['email']
+                session['firstname'] = firstname
+                session['loggedin'] = True
+                session['id'] = account['id']
+                session['user_type'] = user_type
+                flash('Logged in successfully!', 'success')
+                return redirect(url_for('noLoginHome')) 
+            else:
+                flash('Admin Login Unsuccessful. Please check email and password', 'danger')
+        
+        else:
+            if account and check_password_hash(account['password'], password):
+                firstname= account['firstname']
+                lastname = account['lastname']
+                fullname = firstname +" " +lastname
+                session['fullname'] = fullname
+                session['email'] = account['email']
+                
+                session['loggedin'] = True
+                session['id'] = account['id']
+                session['user_type'] = user_type
+                flash('Logged in successfully!', 'success')
+                return redirect(url_for('profile'))  # Loading profile page when login successful.
+            else:
+                flash('Login Unsuccessful. Please check email and password', 'danger')
+                #flash(user_type, 'danger')
+    return render_template('login.html', form=form)
+
+
+@app.route('/logout')
+def logout():
+    session.pop('loggedin', None)
+    session.pop('id', None)
+    session.pop('email', None)
+    session.pop('fullname',None)
+    session.pop('user_type',None)
+    
+    try:
+        session['_flashes'] = []  
+    except KeyError:
+        pass  
+
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('login'))
+
+
+
+
+#****************************** User Profile Managements********************************    
+
+# deleting profile, common for both patient and doctor
+@app.route('/delete_profile', methods=['POST'])
+def delete_profile():
+    if 'loggedin' not in session:
+        return jsonify({'error': 'User not logged in'}), 403
+
+    user_id = session['id']
+    user_type = session['user_type']
+
+    print(user_id)
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        # If the user is a doctor, handle their patient requests and unlink patients
+        if user_type == 'doctor':
+            cursor.execute('SELECT * FROM doctors WHERE id = %s', (user_id,))
+            if cursor.fetchone():
+                cursor.execute('UPDATE accounts SET doctor_id = NULL WHERE doctor_id = %s', (user_id,))
+                cursor.execute('DELETE FROM doctor_requests WHERE doctor_id = %s', (user_id,))
+                cursor.execute('DELETE FROM doctors WHERE id = %s', (user_id,))
+            else:
+                flash('Unauthorized operation.', 'danger')
+                return redirect(url_for('profile'))
+
+        # If the user is a patient, remove any pending doctor requests
+        elif user_type == 'patient':
+            cursor.execute('SELECT * FROM accounts WHERE id = %s', (user_id,))
+            if cursor.fetchone():
+                cursor.execute('DELETE FROM doctor_requests WHERE patient_id = %s', (user_id,))
+                cursor.execute('DELETE FROM accounts WHERE id = %s', (user_id,))
+            else:
+                flash('Unauthorized operation.', 'danger')
+                return redirect(url_for('profile'))    
+
+        else:
+            flash('Invalid user type.', 'danger')
+            return redirect(url_for('profile'))   
+
         mysql.connection.commit()
         cursor.close()
-        return jsonify({'success': True, 'message': 'Doctor request sent successfully'})
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return jsonify({'error': 'Unable to send doctor request'}), 500
+        session.clear()
+        return redirect(url_for('login'), code=302)
 
-
-#----------------------------------------------------------------------------------------------
-# Doctor Methods Implimentation
-
-from flask import flash, redirect, url_for
-
-@app.route('/patient_requests', methods=['GET'])
-def patient_requests():
-    if 'loggedin' not in session or session['user_type'] != 'doctor':
-        # Unauthorized access, redirect to login page
-        flash('Please log in to view patient requests.', 'warning')
-        return redirect(url_for('login'))
-
-    doctor_id = session['id']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    try:
-        cursor.execute('''
-            SELECT r.id AS request_id, a.id AS patient_id, CONCAT(a.firstname, ' ', a.lastname) AS patient_name, a.contact, a.email 
-            FROM doctor_requests r
-            JOIN accounts a ON r.patient_id = a.id
-            WHERE r.doctor_id = %s
-        ''', (doctor_id,))
-        requests = cursor.fetchall()
-        return render_template('patient_requests.html', requests=requests)
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        flash('Failed to retrieve patient requests.', 'error')
-        return render_template('error_page.html')  
-    finally:
-        cursor.close()
-
-
-
-
-@app.route('/accept_patient_request/<int:request_id>', methods=['POST'])
-def accept_patient_request(request_id):
-    if 'loggedin' not in session or session['user_type'] != 'doctor':
-        return jsonify({'error': 'Unauthorized access'}), 403
-
-    doctor_id = session['id']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    try:
-        # Retrieve the patient_id from doctor_requests table
-        cursor.execute('SELECT patient_id FROM doctor_requests WHERE id = %s', (request_id,))
-        patient_request = cursor.fetchone()
-
-        if patient_request:
-            patient_id = patient_request['patient_id']
-            # Update the accounts table to link patient with doctor
-            cursor.execute('UPDATE accounts SET doctor_id = %s WHERE id = %s', (doctor_id, patient_id))
-            # Delete the request from doctor_requests table
-            cursor.execute('DELETE FROM doctor_requests WHERE id = %s', (request_id,))
-            mysql.connection.commit()
-            return jsonify({'success': True, 'message': 'Patient request accepted'})
-        else:
-            return jsonify({'error': 'Request not found'}), 404
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return jsonify({'error': 'Failed to accept patient request'}), 500
-    finally:
-        cursor.close()
-
-
-
-
-
-
-
-@app.route('/my_patients', methods=['GET'])
-def my_patients():
-    if 'loggedin' not in session or session['user_type'] != 'doctor':
-        flash("Unauthorized access. Please login as a doctor.", "danger")
-        return redirect(url_for('login'))
-
-    doctor_id = session['id']
-   
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT id, firstname, lastname, email FROM accounts WHERE doctor_id = %s', (doctor_id,))
-        patients = cursor.fetchall()
-        print(patients)
-        return render_template('my_patients.html', patients=patients)
-    except Exception as e:
-        print("error")
-        flash(f"An error occurred: {e}", "error")
-        return redirect(url_for('home'))
-    finally:
-        cursor.close()
-
-
-@app.route('/patient_uploads/<int:patient_id>', methods=['GET'])
-def patient_uploads(patient_id):
-    # Ensure the doctor is logged in and is linked to the patient
-    if 'loggedin' not in session or session['user_type'] != 'doctor':
-        flash("Unauthorized access. Please login as a doctor.", "danger")
-        return redirect(url_for('login'))
-
-    doctor_id = session['id']
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM accounts WHERE id = %s AND doctor_id = %s', (patient_id, doctor_id))
-        patient = cursor.fetchone()
-
-        if not patient:
-            flash("You do not have access to this patient's uploads.", "danger")
-            return redirect(url_for('my_patients'))
-
-        # Fetch patient's uploads if the doctor is linked
-      
-        cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at ASC LIMIT 1', (patient_id,))
-        first_prediction = cursor.fetchone()
-
-        cursor.execute('SELECT * FROM predictions WHERE user_id = %s ORDER BY uploaded_at DESC', (patient_id,))
-        predictions = cursor.fetchall()
-
-        if first_prediction:
-            first_prediction['image_path'] = first_prediction['image_path'].replace('\\', '/')
-            print(first_prediction)
-        else:
-            first_prediction = {'image_path': ''} 
-
-        for prediction in predictions:
-            prediction['image_path'] = prediction['image_path'].replace('\\', '/')
-
-        # Fetch comments for each prediction and attach them
-        for prediction in predictions:
-            cursor.execute('SELECT * FROM comments WHERE prediction_id = %s', (prediction['id'],))
-            comment = cursor.fetchone()  
-            prediction['comment'] = comment
-
-
-        session['viewing_patient_id'] = patient_id
-        return render_template('patient_uploads.html', predictions=predictions, patient=patient, first_prediction=first_prediction if first_prediction else None)
-    except Exception as e:
-        flash(f"An error occurred: {e}", "error")
-        return redirect(url_for('my_patients'))
-    finally:
-        cursor.close()
-
-
-
-@app.route('/submit_comment/<int:prediction_id>', methods=['POST'])
-def submit_comment(prediction_id):
-    if 'loggedin' not in session or session['user_type'] != 'doctor':
-        # Only logged in doctors should be able to submit comments
-        return redirect(url_for('login'))
-
-    # Get the doctor ID from the session
-    doctor_id = session['id']
-    comment_text = request.form['comment']
-
-    # Insert the comment into the database
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('INSERT INTO comments (prediction_id, doctor_id, comment) VALUES (%s, %s, %s)', (prediction_id, doctor_id, comment_text))
-        mysql.connection.commit()
-        flash('Comment submitted successfully', 'success')
     except Exception as e:
         mysql.connection.rollback()
-        flash('Failed to submit comment', 'error')
         print(f"An error occurred: {e}")
+        flash('Error deleting profile. Please try again.', 'error')
+        return redirect(url_for('profile'))
+
+
+
+# viewing profile, common for both doctor and patient
+@app.route('/profile')
+def profile():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    user_type = session.get('user_type')
+    user_id = session.get('id')
+    has_requested_doctor = False
+
+    if user_type == 'doctor':
+        table_name = 'doctors'
+    else:
+        table_name = 'accounts'  # other users are patients
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM doctor_requests WHERE patient_id = %s', (user_id,))
+        has_requested_doctor = cursor.fetchone() is not None
+        cursor.close()
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(f'SELECT * FROM {table_name} WHERE id = %s', (user_id,))
+    account = cursor.fetchone()
+
+    if not account:
+        flash('User not found.', 'danger')
+        return redirect(url_for('home'))
+
+    # Handle displaying default profile image if none exists
+    profile_image_path = url_for('static', filename='default_profile.png')  # Default image
+    if account.get('profile_image'):
+        profile_image_path = url_for('uploaded_file', filename=account['profile_image'])
+
+    return render_template('profile.html', account=account, profile_image=profile_image_path, user_type=user_type, has_requested_doctor=has_requested_doctor)
+
+
+# updating profile,common for both doctors and patients
+@app.route('/update_profile', methods=['POST'])
+def update_profile():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    firstname = request.form['firstname']
+    lastname = request.form['lastname']
+    contact = request.form['contact']
+    new_password = request.form['password'].strip()
+
+    # getting the currently logged in user type
+    user_type = session.get('user_type')
+    user_id = session.get('id')
+
+    # SQL update string parts
+    update_sql = ""
+    params = []
+
+    # checking in doctor or patient
+    if user_type == 'doctor':
+        table_name = "doctors"
+        update_sql = "UPDATE {} SET firstname = %s, lastname = %s, contact = %s".format(table_name)
+        params = [firstname, lastname, contact]
+    elif user_type == 'patient':
+        table_name = "accounts"
+        update_sql = "UPDATE {} SET firstname = %s, lastname = %s, contact = %s".format(table_name)
+        params = [firstname, lastname, contact]
+    else:
+        flash('Invalid user type. Profile update failed.', 'danger')
+        return redirect(url_for('profile'))
+
+    #updating password if provided
+    if new_password:
+        hashed_password = generate_password_hash(new_password)
+        update_sql += ", password = %s"
+        params.append(hashed_password)
+
+    # final SQL string
+    update_sql += " WHERE id = %s"
+    params.append(user_id)
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute(update_sql, tuple(params))
+        mysql.connection.commit()
+        flash('Your profile has been updated successfully!', 'success')
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f'Failed to update profile: {e}', 'danger')
     finally:
         cursor.close()
-    
-    return redirect(url_for('patient_uploads', patient_id=session['viewing_patient_id']))
+
+    return redirect(url_for('profile'))
+
+
+
+
+# @app.route('/upload', methods=['POST'])
+# def upload():
+#     if 'loggedin' not in session:
+#         return redirect(url_for('login'))
+
+#     if 'profile_image' in request.files:
+#         file = request.files['profile_image']
+#         if file.filename != '':
+#             filename = secure_filename(file.filename)
+#             unique_filename = f"user_{session['id']}_{filename}"
+
+#             cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+#             cursor.execute('SELECT profile_image FROM accounts WHERE id = %s', (session['id'],))
+#             account = cursor.fetchone()
+#             old_image = account.get('profile_image') if account else None
+
+#             if old_image and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], old_image)):
+#                 os.remove(os.path.join(app.config['UPLOAD_FOLDER'], old_image))
+
+#             file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+#             file.save(file_path)
+
+#             cursor.execute('UPDATE accounts SET profile_image = %s WHERE id = %s', (unique_filename, session['id']))
+#             mysql.connection.commit()
+#             flash('Your profile image has been updated!', 'success')
+
+#     return redirect(url_for('profile'))
+
+
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    if 'profile_image' in request.files:
+        file = request.files['profile_image']
+        if file.filename != '':
+            filename = secure_filename(file.filename)
+            unique_filename = f"user_{session['id']}_{filename}"
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            file.save(file_path)
+
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            if session.get('user_type') == 'doctor':
+                # For doctors
+                cursor.execute('SELECT profile_image FROM doctors WHERE id = %s', (session['id'],))
+                table_name = 'doctors'
+            else:
+                # For patients
+                cursor.execute('SELECT profile_image FROM accounts WHERE id = %s', (session['id'],))
+                table_name = 'accounts'
+            
+            account = cursor.fetchone()
+            old_image = account.get('profile_image') if account else None
+
+            if old_image and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], old_image)):
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], old_image))
+
+            cursor.execute(f'UPDATE {table_name} SET profile_image = %s WHERE id = %s', (unique_filename, session['id']))
+            mysql.connection.commit()
+            flash('Your profile image has been updated!', 'success')
+    return redirect(url_for('profile'))
+
+
+
+
+
+# -------------------------------------------------------------
+#                     END OF GENERAL METHODS
+# -------------------------------------------------------------
 
 
 
 
 #-----------------------------------------------------------------------------
-#                    NON ACCOUNT USERS
+#                    NON ACCOUNT USERS AND DOCTORS AND ADMIN
 
 @app.route('/')
 @app.route('/noLoginHome', endpoint='noLoginHome')

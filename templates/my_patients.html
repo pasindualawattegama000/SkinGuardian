@@ -13,7 +13,7 @@
         <ul>
             {% for patient in patients %}
                 <li>
-                    {{ patient.firstname }} {{ patient.lastname }} - {{ patient.email }}
+                    {{ patient.firstname }} {{ patient.lastname }} | {{ patient.email }} | {{ patient.contact }} 
                     <a href="{{ url_for('patient_uploads', patient_id=patient.id) }}">View Uploads</a>
                 </li>
             {% endfor %}
